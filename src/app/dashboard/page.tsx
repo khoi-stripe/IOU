@@ -108,74 +108,80 @@ export default function Dashboard() {
         <span className="text-sm font-medium">{user?.display_name}</span>
       </header>
 
-      {/* Tabs */}
-      <div className="flex gap-3">
-        <button
-          onClick={() => setActiveTab("owe")}
-          className={`flex-1 py-4 px-4 border text-left transition-colors ${
-            activeTab === "owe"
-              ? "border-[var(--color-accent)] bg-[var(--color-bg)]"
-              : "border-[var(--color-border)] bg-[var(--color-bg-secondary)]"
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Owe</span>
-            <span className="text-sm font-bold">{oweCount}</span>
-          </div>
-        </button>
-        <button
-          onClick={() => setActiveTab("owed")}
-          className={`flex-1 py-4 px-4 border text-left transition-colors ${
-            activeTab === "owed"
-              ? "border-[var(--color-accent)] bg-[var(--color-bg)]"
-              : "border-[var(--color-border)] bg-[var(--color-bg-secondary)]"
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Owed</span>
-            <span className="text-sm font-bold">{owedCount}</span>
-          </div>
-        </button>
-      </div>
+      {/* Tabs + Content Container */}
+      <div>
+        {/* Tabs */}
+        <div className="flex">
+          <button
+            onClick={() => setActiveTab("owe")}
+            className={`flex-1 py-4 px-4 text-left transition-colors border-t border-l border-r ${
+              activeTab === "owe"
+                ? "border-[var(--color-accent)] bg-[var(--color-bg)] relative z-10"
+                : "border-[var(--color-border)] bg-[var(--color-bg-secondary)] text-[var(--color-text-muted)]"
+            }`}
+            style={activeTab === "owe" ? { marginBottom: "-1px" } : {}}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Owe</span>
+              <span className="text-sm font-bold">{oweCount}</span>
+            </div>
+          </button>
+          <button
+            onClick={() => setActiveTab("owed")}
+            className={`flex-1 py-4 px-4 text-left transition-colors border-t border-l border-r ${
+              activeTab === "owed"
+                ? "border-[var(--color-accent)] bg-[var(--color-bg)] relative z-10"
+                : "border-[var(--color-border)] bg-[var(--color-bg-secondary)] text-[var(--color-text-muted)]"
+            }`}
+            style={activeTab === "owed" ? { marginBottom: "-1px" } : {}}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Owed</span>
+              <span className="text-sm font-bold">{owedCount}</span>
+            </div>
+          </button>
+        </div>
 
-      {/* Filters */}
-      <div className="flex gap-3 text-xs">
-        <button
-          onClick={() => setFilter("all")}
-          className={`px-3 py-1.5 border transition-colors ${
-            filter === "all"
-              ? "border-[var(--color-accent)] text-[var(--color-text)]"
-              : "border-[var(--color-border)] text-[var(--color-text-muted)]"
-          }`}
-        >
-          ALL
-        </button>
-        <button
-          onClick={() => setFilter("pending")}
-          className={`px-3 py-1.5 border transition-colors flex items-center gap-1.5 ${
-            filter === "pending"
-              ? "border-[var(--color-accent)] text-[var(--color-text)]"
-              : "border-[var(--color-border)] text-[var(--color-text-muted)]"
-          }`}
-        >
-          <span className="inline-block w-2.5 h-2.5 rounded-full border border-current" />
-          PENDING
-        </button>
-        <button
-          onClick={() => setFilter("repaid")}
-          className={`px-3 py-1.5 border transition-colors flex items-center gap-1.5 ${
-            filter === "repaid"
-              ? "border-[var(--color-accent)] text-[var(--color-text)]"
-              : "border-[var(--color-border)] text-[var(--color-text-muted)]"
-          }`}
-        >
-          <span className="inline-block w-2.5 h-2.5 rounded-full bg-current" />
-          REPAID
-        </button>
-      </div>
+        {/* Content Container */}
+        <div className="border border-[var(--color-accent)] p-4 space-y-4">
+          {/* Filters */}
+          <div className="flex gap-3 text-xs">
+            <button
+              onClick={() => setFilter("all")}
+              className={`transition-colors ${
+                filter === "all"
+                  ? "text-[var(--color-text)] underline underline-offset-4"
+                  : "text-[var(--color-text-muted)]"
+              }`}
+            >
+              ALL
+            </button>
+            <button
+              onClick={() => setFilter("pending")}
+              className={`transition-colors flex items-center gap-1.5 ${
+                filter === "pending"
+                  ? "text-[var(--color-text)] underline underline-offset-4"
+                  : "text-[var(--color-text-muted)]"
+              }`}
+            >
+              <span className="inline-block w-2.5 h-2.5 rounded-full border border-current" />
+              PENDING
+            </button>
+            <button
+              onClick={() => setFilter("repaid")}
+              className={`transition-colors flex items-center gap-1.5 ${
+                filter === "repaid"
+                  ? "text-[var(--color-text)] underline underline-offset-4"
+                  : "text-[var(--color-text-muted)]"
+              }`}
+            >
+              <span className="inline-block w-2.5 h-2.5 rounded-full bg-current" />
+              REPAID
+            </button>
+          </div>
 
-      {/* List */}
-      <div className="space-y-3">
+          {/* List */}
+          <div className="space-y-3">
         {filtered.length === 0 ? (
           <p className="text-center py-12 text-[var(--color-text-muted)] text-sm">
             No IOUs yet
@@ -191,6 +197,8 @@ export default function Dashboard() {
             />
           ))
         )}
+          </div>
+        </div>
       </div>
 
       {/* Fixed bottom button */}

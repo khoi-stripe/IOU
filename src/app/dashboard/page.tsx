@@ -114,7 +114,7 @@ export default function Dashboard() {
         <div className="flex gap-1">
           <button
             onClick={() => setActiveTab("owe")}
-            className={`flex-1 py-4 px-4 text-left transition-colors border-t border-l border-r ${
+            className={`flex-1 py-4 px-4 text-left transition-colors border-t border-l border-r rounded-t ${
               activeTab === "owe"
                 ? "border-[var(--color-accent)] bg-[var(--color-bg)] relative z-10"
                 : "border-[var(--color-border)] bg-[var(--color-bg-secondary)] text-[var(--color-text-muted)]"
@@ -128,7 +128,7 @@ export default function Dashboard() {
           </button>
           <button
             onClick={() => setActiveTab("owed")}
-            className={`flex-1 py-4 px-4 text-left transition-colors border-t border-l border-r ${
+            className={`flex-1 py-4 px-4 text-left transition-colors border-t border-l border-r rounded-t ${
               activeTab === "owed"
                 ? "border-[var(--color-accent)] bg-[var(--color-bg)] relative z-10"
                 : "border-[var(--color-border)] bg-[var(--color-bg-secondary)] text-[var(--color-text-muted)]"

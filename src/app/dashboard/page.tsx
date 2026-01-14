@@ -101,7 +101,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="space-y-5 pb-20">
+    <div className="flex flex-col h-screen pb-2">
       {/* Header */}
       <header className="flex items-center justify-between px-4 mb-4">
         <h1 className="text-lg" style={{ letterSpacing: '0.1em' }}>👁️🅾️🐑</h1>
@@ -143,7 +143,7 @@ export default function Dashboard() {
         </div>
 
         {/* Content Container */}
-        <div className="border border-[var(--color-accent)] flex flex-col" style={{ maxHeight: "calc(100vh - 180px)" }}>
+        <div className="border border-[var(--color-accent)] flex flex-col flex-1 min-h-0 mb-2">
           {/* Filters - sticky */}
           <div className="flex gap-3 text-xs p-3 bg-[var(--color-bg)] sticky top-0 z-10 border-b border-[var(--color-border)]">
             <button

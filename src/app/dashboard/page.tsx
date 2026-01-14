@@ -111,7 +111,7 @@ export default function Dashboard() {
       {/* Tabs + Content Container */}
       <div>
         {/* Tabs */}
-        <div className="flex gap-1">
+        <div className="flex gap-2">
           <button
             onClick={() => setActiveTab("owe")}
             className={`flex-1 py-4 px-4 text-left transition-colors border-t border-l border-r rounded-t ${

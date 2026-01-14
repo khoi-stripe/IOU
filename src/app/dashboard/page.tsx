@@ -103,7 +103,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-5 pb-20">
       {/* Header */}
-      <header className="flex items-center justify-between px-4">
+      <header className="flex items-center justify-between px-4 mb-4">
         <h1 className="text-lg" style={{ letterSpacing: '0.1em' }}>👁️🅾️🐑</h1>
         <span className="text-sm font-medium">{user?.display_name}</span>
       </header>

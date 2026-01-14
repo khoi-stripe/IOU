@@ -148,12 +148,16 @@ export default function Dashboard() {
           <div className="flex gap-3 text-xs">
             <button
               onClick={() => setFilter("all")}
-              className={`transition-colors ${
+              className={`transition-colors flex items-center gap-1.5 ${
                 filter === "all"
                   ? "text-[var(--color-text)] underline underline-offset-4"
                   : "text-[var(--color-text-muted)]"
               }`}
             >
+              <span 
+                className="inline-block w-2.5 h-2.5 rounded-full border border-current"
+                style={{ background: "linear-gradient(to right, currentColor 50%, transparent 50%)" }}
+              />
               ALL
             </button>
             <button

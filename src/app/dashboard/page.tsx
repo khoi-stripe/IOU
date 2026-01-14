@@ -114,9 +114,9 @@ export default function Dashboard() {
         <div className="flex">
           <button
             onClick={() => setActiveTab("owe")}
-            className={`flex-1 py-4 px-4 text-left transition-colors border-t border-l border-r ${
+            className={`flex-1 py-4 px-4 text-left transition-colors border-t border-l ${
               activeTab === "owe"
-                ? "border-[var(--color-accent)] bg-[var(--color-bg)] relative z-10"
+                ? "border-[var(--color-accent)] bg-[var(--color-bg)] relative z-10 border-r"
                 : "border-[var(--color-border)] bg-[var(--color-bg-secondary)] text-[var(--color-text-muted)]"
             }`}
             style={activeTab === "owe" ? { marginBottom: "-1px" } : {}}
@@ -128,10 +128,10 @@ export default function Dashboard() {
           </button>
           <button
             onClick={() => setActiveTab("owed")}
-            className={`flex-1 py-4 px-4 text-left transition-colors border-t border-l border-r ${
+            className={`flex-1 py-4 px-4 text-left transition-colors border-t border-r ${
               activeTab === "owed"
-                ? "border-[var(--color-accent)] bg-[var(--color-bg)] relative z-10"
-                : "border-[var(--color-border)] bg-[var(--color-bg-secondary)] text-[var(--color-text-muted)]"
+                ? "border-[var(--color-accent)] bg-[var(--color-bg)] relative z-10 border-l"
+                : "border-[var(--color-border)] bg-[var(--color-bg-secondary)] text-[var(--color-text-muted)] border-l"
             }`}
             style={activeTab === "owed" ? { marginBottom: "-1px" } : {}}
           >

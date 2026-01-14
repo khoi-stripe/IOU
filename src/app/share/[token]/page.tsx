@@ -7,22 +7,22 @@ import Link from "next/link";
 interface User {
   id: string;
   phone: string;
-  displayName: string;
+  display_name: string;
 }
 
 interface IOU {
   id: string;
-  fromUserId: string;
-  toPhone: string;
-  toUserId: string | null;
+  from_user_id: string;
+  to_phone: string;
+  to_user_id: string | null;
   description: string;
-  photoUrl: string | null;
+  photo_url: string | null;
   status: "pending" | "repaid";
-  shareToken: string;
-  createdAt: string;
-  repaidAt: string | null;
-  fromUser?: User;
-  toUser?: User;
+  share_token: string;
+  created_at: string;
+  repaid_at: string | null;
+  from_user?: User;
+  to_user?: User;
 }
 
 export default function SharePage() {
@@ -83,7 +83,7 @@ export default function SharePage() {
     );
   }
 
-  const fromName = iou.fromUser?.displayName || "Someone";
+  const fromName = iou.from_user?.display_name || "Someone";
 
   return (
     <div className="space-y-6">
@@ -102,16 +102,16 @@ export default function SharePage() {
           <p className="text-2xl font-bold">{iou.description}</p>
         </div>
 
-        {iou.photoUrl && (
+        {iou.photo_url && (
           <img
-            src={iou.photoUrl}
+            src={iou.photo_url}
             alt="IOU photo"
             className="w-full h-48 object-cover border border-[var(--color-border)]"
           />
         )}
 
         <div className="flex justify-between items-center text-sm text-[var(--color-text-muted)]">
-          <span>{new Date(iou.createdAt).toLocaleDateString()}</span>
+          <span>{new Date(iou.created_at).toLocaleDateString()}</span>
           <span
             className={`px-2 py-1 ${
               iou.status === "pending"

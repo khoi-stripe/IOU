@@ -8,7 +8,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const iou = getIOUById(id);
+    const iou = await getIOUById(id);
 
     if (!iou) {
       return NextResponse.json({ error: "IOU not found" }, { status: 404 });
@@ -39,7 +39,7 @@ export async function PATCH(
     const { action } = await request.json();
 
     if (action === "repaid") {
-      const iou = markIOURepaid(id);
+      const iou = await markIOURepaid(id);
       if (!iou) {
         return NextResponse.json({ error: "IOU not found" }, { status: 404 });
       }

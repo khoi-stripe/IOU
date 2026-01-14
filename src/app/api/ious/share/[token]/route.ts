@@ -7,7 +7,7 @@ export async function GET(
 ) {
   try {
     const { token } = await params;
-    const iou = getIOUByShareToken(token);
+    const iou = await getIOUByShareToken(token);
 
     if (!iou) {
       return NextResponse.json({ error: "IOU not found" }, { status: 404 });

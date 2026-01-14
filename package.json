@@ -9,6 +9,8 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.968.0",
+    "@supabase/supabase-js": "^2.90.1",
     "@tailwindcss/postcss": "^4.1.18",
     "@types/node": "^24.0.4",
     "@types/react": "^19.1.8",

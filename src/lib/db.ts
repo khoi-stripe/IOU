@@ -1,164 +1,226 @@
-import { readFileSync, writeFileSync, existsSync } from "fs";
-import { join } from "path";
-
-const DB_PATH = join(process.cwd(), "data.json");
+import { getSupabase } from "./supabase";
 
 export interface User {
   id: string;
   phone: string;
-  displayName: string;
-  createdAt: string;
+  display_name: string;
+  created_at: string;
 }
 
 export interface IOU {
   id: string;
-  fromUserId: string;
-  toPhone: string;
-  toUserId: string | null;
+  from_user_id: string;
+  to_phone: string;
+  to_user_id: string | null;
   description: string;
-  photoUrl: string | null;
+  photo_url: string | null;
   status: "pending" | "repaid";
-  shareToken: string;
-  createdAt: string;
-  repaidAt: string | null;
-}
-
-interface Database {
-  users: User[];
-  ious: IOU[];
-}
-
-function getDb(): Database {
-  if (!existsSync(DB_PATH)) {
-    return { users: [], ious: [] };
-  }
-  const data = readFileSync(DB_PATH, "utf-8");
-  return JSON.parse(data);
-}
-
-function saveDb(db: Database): void {
-  writeFileSync(DB_PATH, JSON.stringify(db, null, 2));
-}
-
-function generateId(): string {
-  return Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+  share_token: string;
+  created_at: string;
+  repaid_at: string | null;
+  // Joined data
+  from_user?: User;
+  to_user?: User;
 }
 
 // User operations
-export function createUser(phone: string, displayName: string): User {
-  const db = getDb();
-  const existing = db.users.find((u) => u.phone === phone);
+export async function createUser(phone: string, displayName: string): Promise<User> {
+  const supabase = getSupabase();
+  // Try to find existing user first
+  const { data: existing } = await supabase
+    .from("users")
+    .select("*")
+    .eq("phone", phone)
+    .single();
+
   if (existing) {
-    // Update name if different
-    existing.displayName = displayName;
-    saveDb(db);
-    return existing;
+    // Update display name if different
+    if (existing.display_name !== displayName) {
+      const { data: updated } = await supabase
+        .from("users")
+        .update({ display_name: displayName })
+        .eq("id", existing.id)
+        .select()
+        .single();
+      return updated as User;
+    }
+    return existing as User;
   }
-  
-  const user: User = {
-    id: generateId(),
-    phone,
-    displayName,
-    createdAt: new Date().toISOString(),
-  };
-  db.users.push(user);
-  saveDb(db);
-  return user;
+
+  // Create new user
+  const { data, error } = await supabase
+    .from("users")
+    .insert({ phone, display_name: displayName })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as User;
 }
 
-export function getUserByPhone(phone: string): User | null {
-  const db = getDb();
-  return db.users.find((u) => u.phone === phone) || null;
+export async function getUserByPhone(phone: string): Promise<User | null> {
+  const supabase = getSupabase();
+  const { data } = await supabase
+    .from("users")
+    .select("*")
+    .eq("phone", phone)
+    .single();
+
+  return data as User | null;
 }
 
-export function getUserById(id: string): User | null {
-  const db = getDb();
-  return db.users.find((u) => u.id === id) || null;
+export async function getUserById(id: string): Promise<User | null> {
+  const supabase = getSupabase();
+  const { data } = await supabase
+    .from("users")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  return data as User | null;
 }
 
 // IOU operations
-export function createIOU(
+export async function createIOU(
   fromUserId: string,
   toPhone: string,
   description: string,
   photoUrl?: string
-): IOU {
-  const db = getDb();
-  
+): Promise<IOU> {
+  const supabase = getSupabase();
   // Check if toPhone matches an existing user
-  const toUser = db.users.find((u) => u.phone === toPhone);
-  
-  const iou: IOU = {
-    id: generateId(),
-    fromUserId,
-    toPhone,
-    toUserId: toUser?.id || null,
-    description,
-    photoUrl: photoUrl || null,
-    status: "pending",
-    shareToken: generateId(),
-    createdAt: new Date().toISOString(),
-    repaidAt: null,
-  };
-  db.ious.push(iou);
-  saveDb(db);
-  return iou;
+  const { data: toUser } = await supabase
+    .from("users")
+    .select("id")
+    .eq("phone", toPhone)
+    .single();
+
+  const { data, error } = await supabase
+    .from("ious")
+    .insert({
+      from_user_id: fromUserId,
+      to_phone: toPhone,
+      to_user_id: toUser?.id || null,
+      description,
+      photo_url: photoUrl || null,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as IOU;
 }
 
-export function getIOUsByUser(userId: string): { owed: IOU[]; owing: IOU[] } {
-  const db = getDb();
-  const user = db.users.find((u) => u.id === userId);
+export async function getIOUsByUser(userId: string): Promise<{ owed: IOU[]; owing: IOU[] }> {
+  const supabase = getSupabase();
+  const user = await getUserById(userId);
   if (!user) return { owed: [], owing: [] };
-  
+
   // IOUs where this user owes someone
-  const owed = db.ious.filter((i) => i.fromUserId === userId);
-  
+  const { data: owed } = await supabase
+    .from("ious")
+    .select(`
+      *,
+      from_user:users!ious_from_user_id_fkey(*),
+      to_user:users!ious_to_user_id_fkey(*)
+    `)
+    .eq("from_user_id", userId)
+    .order("created_at", { ascending: false });
+
   // IOUs where this user is owed (by phone or userId)
-  const owing = db.ious.filter(
-    (i) => i.toUserId === userId || i.toPhone === user.phone
-  );
-  
-  return { owed, owing };
+  const { data: owingByUserId } = await supabase
+    .from("ious")
+    .select(`
+      *,
+      from_user:users!ious_from_user_id_fkey(*),
+      to_user:users!ious_to_user_id_fkey(*)
+    `)
+    .eq("to_user_id", userId)
+    .order("created_at", { ascending: false });
+
+  const { data: owingByPhone } = await supabase
+    .from("ious")
+    .select(`
+      *,
+      from_user:users!ious_from_user_id_fkey(*),
+      to_user:users!ious_to_user_id_fkey(*)
+    `)
+    .eq("to_phone", user.phone)
+    .is("to_user_id", null)
+    .order("created_at", { ascending: false });
+
+  // Combine and deduplicate owing
+  const owingMap = new Map<string, IOU>();
+  [...(owingByUserId || []), ...(owingByPhone || [])].forEach((iou) => {
+    owingMap.set(iou.id, iou as IOU);
+  });
+
+  return {
+    owed: (owed || []) as IOU[],
+    owing: Array.from(owingMap.values()),
+  };
 }
 
-export function getIOUById(id: string): IOU | null {
-  const db = getDb();
-  return db.ious.find((i) => i.id === id) || null;
+export async function getIOUById(id: string): Promise<IOU | null> {
+  const supabase = getSupabase();
+  const { data } = await supabase
+    .from("ious")
+    .select(`
+      *,
+      from_user:users!ious_from_user_id_fkey(*),
+      to_user:users!ious_to_user_id_fkey(*)
+    `)
+    .eq("id", id)
+    .single();
+
+  return data as IOU | null;
 }
 
-export function getIOUByShareToken(token: string): IOU | null {
-  const db = getDb();
-  return db.ious.find((i) => i.shareToken === token) || null;
+export async function getIOUByShareToken(token: string): Promise<IOU | null> {
+  const supabase = getSupabase();
+  const { data } = await supabase
+    .from("ious")
+    .select(`
+      *,
+      from_user:users!ious_from_user_id_fkey(*),
+      to_user:users!ious_to_user_id_fkey(*)
+    `)
+    .eq("share_token", token)
+    .single();
+
+  return data as IOU | null;
 }
 
-export function markIOURepaid(id: string): IOU | null {
-  const db = getDb();
-  const iou = db.ious.find((i) => i.id === id);
-  if (!iou) return null;
-  
-  iou.status = "repaid";
-  iou.repaidAt = new Date().toISOString();
-  saveDb(db);
+export async function markIOURepaid(id: string): Promise<IOU | null> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from("ious")
+    .update({
+      status: "repaid",
+      repaid_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .select(`
+      *,
+      from_user:users!ious_from_user_id_fkey(*),
+      to_user:users!ious_to_user_id_fkey(*)
+    `)
+    .single();
+
+  if (error) return null;
+  return data as IOU;
+}
+
+export async function linkIOUToUser(iouId: string, userId: string): Promise<void> {
+  const supabase = getSupabase();
+  await supabase
+    .from("ious")
+    .update({ to_user_id: userId })
+    .eq("id", iouId)
+    .is("to_user_id", null);
+}
+
+// Helper to enrich IOU (already done via joins, but kept for compatibility)
+export function enrichIOU(iou: IOU): IOU {
   return iou;
 }
-
-export function linkIOUToUser(iouId: string, userId: string): void {
-  const db = getDb();
-  const iou = db.ious.find((i) => i.id === iouId);
-  if (iou && !iou.toUserId) {
-    iou.toUserId = userId;
-    saveDb(db);
-  }
-}
-
-// Helper to get user info for display
-export function enrichIOU(iou: IOU): IOU & { fromUser?: User; toUser?: User } {
-  const db = getDb();
-  const fromUser = db.users.find((u) => u.id === iou.fromUserId);
-  const toUser = iou.toUserId 
-    ? db.users.find((u) => u.id === iou.toUserId) 
-    : db.users.find((u) => u.phone === iou.toPhone);
-  
-  return { ...iou, fromUser, toUser };
-}
-

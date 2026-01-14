@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
-import { join } from "path";
-import { existsSync } from "fs";
+import { uploadToR2 } from "@/lib/r2";
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,29 +18,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create uploads directory if it doesn't exist
-    const uploadsDir = join(process.cwd(), "public", "uploads");
-    if (!existsSync(uploadsDir)) {
-      await mkdir(uploadsDir, { recursive: true });
-    }
-
-    // Generate unique filename
-    const ext = file.name.split(".").pop() || "jpg";
-    const filename = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${ext}`;
-    const filepath = join(uploadsDir, filename);
-
-    // Write file
+    // Convert file to buffer
     const bytes = await file.arrayBuffer();
-    await writeFile(filepath, Buffer.from(bytes));
+    const buffer = Buffer.from(bytes);
 
-    // Return public URL
-    const url = `/uploads/${filename}`;
+    // Generate safe filename
+    const ext = file.name.split(".").pop() || "jpg";
+    const safeFilename = `${Math.random().toString(36).substring(2, 8)}.${ext}`;
+
+    // Upload to R2
+    const url = await uploadToR2(buffer, safeFilename, file.type);
+
     return NextResponse.json({ url });
-  } catch {
+  } catch (error) {
+    console.error("Upload error:", error);
     return NextResponse.json(
       { error: "Failed to upload file" },
       { status: 500 }
     );
   }
 }
-

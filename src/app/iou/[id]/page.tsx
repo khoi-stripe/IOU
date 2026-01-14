@@ -7,22 +7,22 @@ import Link from "next/link";
 interface User {
   id: string;
   phone: string;
-  displayName: string;
+  display_name: string;
 }
 
 interface IOU {
   id: string;
-  fromUserId: string;
-  toPhone: string;
-  toUserId: string | null;
+  from_user_id: string;
+  to_phone: string;
+  to_user_id: string | null;
   description: string;
-  photoUrl: string | null;
+  photo_url: string | null;
   status: "pending" | "repaid";
-  shareToken: string;
-  createdAt: string;
-  repaidAt: string | null;
-  fromUser?: User;
-  toUser?: User;
+  share_token: string;
+  created_at: string;
+  repaid_at: string | null;
+  from_user?: User;
+  to_user?: User;
 }
 
 export default function IOUDetail() {
@@ -77,7 +77,7 @@ export default function IOUDetail() {
 
   function copyShareLink() {
     if (!iou) return;
-    const url = `${window.location.origin}/share/${iou.shareToken}`;
+    const url = `${window.location.origin}/share/${iou.share_token}`;
     navigator.clipboard.writeText(url);
     alert("Link copied to clipboard!");
   }
@@ -106,7 +106,7 @@ export default function IOUDetail() {
     );
   }
 
-  const toName = iou.toUser?.displayName || formatPhone(iou.toPhone);
+  const toName = iou.to_user?.display_name || formatPhone(iou.to_phone);
 
   return (
     <div className="space-y-6">
@@ -139,18 +139,18 @@ export default function IOUDetail() {
           <p className="text-lg">{iou.description}</p>
         </div>
 
-        {iou.photoUrl && (
+        {iou.photo_url && (
           <img
-            src={iou.photoUrl}
+            src={iou.photo_url}
             alt="IOU photo"
             className="w-full h-64 object-cover border border-[var(--color-border)]"
           />
         )}
 
         <div className="text-sm text-[var(--color-text-muted)]">
-          <p>Created: {new Date(iou.createdAt).toLocaleDateString()}</p>
-          {iou.repaidAt && (
-            <p>Repaid: {new Date(iou.repaidAt).toLocaleDateString()}</p>
+          <p>Created: {new Date(iou.created_at).toLocaleDateString()}</p>
+          {iou.repaid_at && (
+            <p>Repaid: {new Date(iou.repaid_at).toLocaleDateString()}</p>
           )}
         </div>
       </div>

@@ -7,22 +7,22 @@ import Link from "next/link";
 interface User {
   id: string;
   phone: string;
-  displayName: string;
+  display_name: string;
 }
 
 interface IOU {
   id: string;
-  fromUserId: string;
-  toPhone: string;
-  toUserId: string | null;
+  from_user_id: string;
+  to_phone: string;
+  to_user_id: string | null;
   description: string;
-  photoUrl: string | null;
+  photo_url: string | null;
   status: "pending" | "repaid";
-  shareToken: string;
-  createdAt: string;
-  repaidAt: string | null;
-  fromUser?: User;
-  toUser?: User;
+  share_token: string;
+  created_at: string;
+  repaid_at: string | null;
+  from_user?: User;
+  to_user?: User;
 }
 
 type Tab = "owed" | "owing";
@@ -101,7 +101,7 @@ export default function Dashboard() {
       <header className="flex items-center justify-between">
         <h1 className="text-xl font-bold" style={{ letterSpacing: '0.3em' }}>👁️🅾️🐑</h1>
         <p className="text-sm text-[var(--color-text-muted)]">
-          {user?.displayName}
+          {user?.display_name}
         </p>
       </header>
 
@@ -159,7 +159,7 @@ export default function Dashboard() {
               iou={iou}
               isOwed={activeTab === "owed"}
               onMarkRepaid={() => handleMarkRepaid(iou.id)}
-              onShare={() => copyShareLink(iou.shareToken)}
+              onShare={() => copyShareLink(iou.share_token)}
             />
           ))
         )}
@@ -188,8 +188,8 @@ function IOUCard({
   onShare: () => void;
 }) {
   const personName = isOwed
-    ? iou.toUser?.displayName || formatPhone(iou.toPhone)
-    : iou.fromUser?.displayName || "Someone";
+    ? iou.to_user?.display_name || formatPhone(iou.to_phone)
+    : iou.from_user?.display_name || "Someone";
 
   return (
     <div className="p-4 border border-[var(--color-border)] space-y-3">
@@ -212,9 +212,9 @@ function IOUCard({
         </span>
       </div>
 
-      {iou.photoUrl && (
+      {iou.photo_url && (
         <img
-          src={iou.photoUrl}
+          src={iou.photo_url}
           alt="IOU photo"
           className="w-full h-32 object-cover border border-[var(--color-border)]"
         />
@@ -238,7 +238,7 @@ function IOUCard({
       </div>
 
       <p className="text-xs text-[var(--color-text-muted)]">
-        {new Date(iou.createdAt).toLocaleDateString()}
+        {new Date(iou.created_at).toLocaleDateString()}
       </p>
     </div>
   );

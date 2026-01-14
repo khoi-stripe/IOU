@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     // Normalize phone number (remove non-digits)
     const normalizedPhone = phone.replace(/\D/g, "");
 
-    const user = createUser(normalizedPhone, displayName);
+    const user = await createUser(normalizedPhone, displayName);
 
     // Set a simple cookie with user ID
     const cookieStore = await cookies();

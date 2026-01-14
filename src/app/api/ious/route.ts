@@ -11,12 +11,12 @@ export async function GET() {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const user = getUserById(userId);
+    const user = await getUserById(userId);
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const { owed, owing } = getIOUsByUser(userId);
+    const { owed, owing } = await getIOUsByUser(userId);
 
     return NextResponse.json({
       user,
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     // Normalize phone number
     const normalizedPhone = toPhone.replace(/\D/g, "");
 
-    const iou = createIOU(userId, normalizedPhone, description, photoUrl);
+    const iou = await createIOU(userId, normalizedPhone, description, photoUrl);
 
     return NextResponse.json({ iou: enrichIOU(iou) });
   } catch {

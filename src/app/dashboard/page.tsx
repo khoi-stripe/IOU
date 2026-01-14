@@ -109,7 +109,7 @@ export default function Dashboard() {
     <div className="flex flex-col h-full pt-4 pb-16">
       {/* Header */}
       <header className="flex items-center justify-between px-4 mb-4 shrink-0">
-        <h1 className="text-lg" style={{ letterSpacing: '0.1em' }}>👁️🅾️🐑</h1>
+        <h1 className="text-lg" style={{ letterSpacing: '0.1em', filter: 'grayscale(1)' }}>👁️🅾️🐑</h1>
         <button 
           onClick={handleLogout}
           className="text-sm font-medium hover:underline underline-offset-4"
@@ -155,7 +155,7 @@ export default function Dashboard() {
         {/* Content Container */}
         <div className="border border-[#808080] flex flex-col flex-1 min-h-0 rounded-b">
           {/* Filters */}
-          <div className="flex gap-3 text-xs p-3 bg-[var(--color-bg)] shrink-0">
+          <div className="flex gap-3 text-xs pt-4 px-4 bg-[var(--color-bg)] shrink-0">
             <button
               onClick={() => setFilter("all")}
               className={`transition-colors flex items-center gap-1.5 ${
@@ -195,7 +195,7 @@ export default function Dashboard() {
           </div>
 
           {/* List - scrollable */}
-          <div className="space-y-3 p-3 overflow-y-auto flex-1 min-h-0">
+          <div className="space-y-3 p-4 overflow-y-auto flex-1 min-h-0">
             {filtered.length === 0 ? (
               <p className="text-center py-12 text-[var(--color-text-muted)] text-sm">
                 No IOUs yet

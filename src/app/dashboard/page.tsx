@@ -109,7 +109,7 @@ export default function Dashboard() {
     <div className="flex flex-col h-full pt-4 pb-16">
       {/* Header */}
       <header className="flex items-center justify-between px-4 mb-4 shrink-0">
-        <h1 className="text-lg" style={{ letterSpacing: '0.1em', filter: 'grayscale(1)' }}>👁️🅾️🐑</h1>
+        <h1 className="text-lg" style={{ letterSpacing: '0.2em', filter: 'grayscale(1)' }}>👁️🅾️🐑</h1>
         <button 
           onClick={handleLogout}
           className="text-sm font-medium hover:underline underline-offset-4"
@@ -133,7 +133,7 @@ export default function Dashboard() {
           >
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">Owe</span>
-              <span className="text-sm font-bold">{oweCount}</span>
+              <span className="text-sm font-medium">{oweCount}</span>
             </div>
           </button>
           <button
@@ -147,7 +147,7 @@ export default function Dashboard() {
           >
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">Owed</span>
-              <span className="text-sm font-bold">{owedCount}</span>
+              <span className="text-sm font-medium">{owedCount}</span>
             </div>
           </button>
         </div>
@@ -158,9 +158,9 @@ export default function Dashboard() {
           <div className="flex gap-3 text-xs pt-4 px-4 bg-[var(--color-bg)] shrink-0">
             <button
               onClick={() => setFilter("all")}
-              className={`transition-colors flex items-center gap-1.5 ${
+              className={`transition-colors flex items-center gap-1.5 pb-1 ${
                 filter === "all"
-                  ? "text-[var(--color-text)] underline underline-offset-4"
+                  ? "text-[var(--color-text)] border-b border-current"
                   : "text-[var(--color-text-muted)]"
               }`}
             >
@@ -172,9 +172,9 @@ export default function Dashboard() {
             </button>
             <button
               onClick={() => setFilter("pending")}
-              className={`transition-colors flex items-center gap-1.5 ${
+              className={`transition-colors flex items-center gap-1.5 pb-1 ${
                 filter === "pending"
-                  ? "text-[var(--color-text)] underline underline-offset-4"
+                  ? "text-[var(--color-text)] border-b border-current"
                   : "text-[var(--color-text-muted)]"
               }`}
             >
@@ -183,9 +183,9 @@ export default function Dashboard() {
             </button>
             <button
               onClick={() => setFilter("repaid")}
-              className={`transition-colors flex items-center gap-1.5 ${
+              className={`transition-colors flex items-center gap-1.5 pb-1 ${
                 filter === "repaid"
-                  ? "text-[var(--color-text)] underline underline-offset-4"
+                  ? "text-[var(--color-text)] border-b border-current"
                   : "text-[var(--color-text-muted)]"
               }`}
             >

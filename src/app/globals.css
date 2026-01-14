@@ -40,3 +40,7 @@ input, textarea, button, select {
   font-family: inherit;
 }
 
+button {
+  font-weight: 500;
+}
+

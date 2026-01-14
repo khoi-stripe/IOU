@@ -82,10 +82,37 @@ export default function Dashboard() {
     }
   }
 
-  function copyShareLink(token: string) {
-    const url = `${window.location.origin}/share/${token}`;
-    navigator.clipboard.writeText(url);
-    alert("Link copied!");
+  async function handleShare(iou: IOU, isOwe: boolean) {
+    const personName = isOwe
+      ? iou.to_user?.display_name || (iou.to_phone ? formatPhone(iou.to_phone) : "someone")
+      : iou.from_user?.display_name || "Someone";
+
+    const text = isOwe
+      ? `I owe ${personName}${iou.description ? `: ${iou.description}` : ""}`
+      : `${personName} owes me${iou.description ? `: ${iou.description}` : ""}`;
+
+    const url = `${window.location.origin}/share/${iou.share_token}`;
+
+    const shareData = {
+      title: "IOU",
+      text,
+      url,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(url);
+        alert("Link copied!");
+      }
+    } catch (err) {
+      // User cancelled share or error - silently ignore
+      if (err instanceof Error && err.name !== "AbortError") {
+        await navigator.clipboard.writeText(url);
+        alert("Link copied!");
+      }
+    }
   }
 
   const items = activeTab === "owe" ? owed : owing;
@@ -207,7 +234,7 @@ export default function Dashboard() {
                   iou={iou}
                   isOwe={activeTab === "owe"}
                   onMarkRepaid={() => handleMarkRepaid(iou.id)}
-                  onShare={() => copyShareLink(iou.share_token)}
+                  onShare={() => handleShare(iou, activeTab === "owe")}
                 />
               ))
             )}
@@ -297,7 +324,7 @@ function IOUCard({
           onClick={onShare}
           className="flex-1 px-2 py-1 text-xs font-bold border border-[var(--color-border)] hover:border-[var(--color-accent)] transition-colors uppercase tracking-wide"
         >
-          Copy Link
+          Share
         </button>
         {isPending && isOwe && (
           <button

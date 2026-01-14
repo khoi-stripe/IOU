@@ -75,11 +75,33 @@ export default function IOUDetail() {
     }
   }
 
-  function copyShareLink() {
+  async function handleShare() {
     if (!iou) return;
+
+    const toName = iou.to_user?.display_name || (iou.to_phone ? formatPhone(iou.to_phone) : "someone");
+    const text = `I owe ${toName}${iou.description ? `: ${iou.description}` : ""}`;
     const url = `${window.location.origin}/share/${iou.share_token}`;
-    navigator.clipboard.writeText(url);
-    alert("Link copied to clipboard!");
+
+    const shareData = {
+      title: "IOU",
+      text,
+      url,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(url);
+        alert("Link copied!");
+      }
+    } catch (err) {
+      // User cancelled share or error - silently ignore
+      if (err instanceof Error && err.name !== "AbortError") {
+        await navigator.clipboard.writeText(url);
+        alert("Link copied!");
+      }
+    }
   }
 
   if (loading) {
@@ -165,10 +187,10 @@ export default function IOUDetail() {
 
       <div className="space-y-3">
         <button
-          onClick={copyShareLink}
+          onClick={handleShare}
           className="w-full py-2 border border-[var(--color-border)] hover:border-[var(--color-accent)] transition-colors"
         >
-          Copy Share Link
+          Share
         </button>
 
         {iou.status === "pending" && (

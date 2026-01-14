@@ -21,7 +21,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={ibmPlexMono.variable}>
       <body className="min-h-screen antialiased">
-        <main className="max-w-md mx-auto px-4 py-8">
+        <main className="max-w-md mx-auto px-2 py-8">
           {children}
         </main>
       </body>

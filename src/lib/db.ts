@@ -336,16 +336,24 @@ export async function getContactsForUser(userId: string): Promise<Contact[]> {
     `)
     .eq("to_phone", user.phone);
 
+  // Helper to extract user from Supabase join (could be object or array)
+  type JoinedUser = { phone: string; display_name: string } | { phone: string; display_name: string }[] | null;
+  function extractUser(joined: JoinedUser): { phone: string; display_name: string } | null {
+    if (!joined) return null;
+    if (Array.isArray(joined)) return joined[0] || null;
+    return joined;
+  }
+
   // Build contacts map (keyed by phone)
   const contactsMap = new Map<string, Contact>();
 
   // From IOUs where user owes someone
   for (const iou of owedIOUs || []) {
     const phone = iou.to_phone;
-    const toUser = iou.to_user as { phone: string; display_name: string } | null;
+    const toUser = extractUser(iou.to_user as JoinedUser);
     
-    // Skip self
-    if (phone === user.phone) continue;
+    // Skip if no phone or self
+    if (!phone || phone === user.phone) continue;
 
     if (!contactsMap.has(phone)) {
       contactsMap.set(phone, {
@@ -366,7 +374,7 @@ export async function getContactsForUser(userId: string): Promise<Contact[]> {
   // From IOUs where user is owed
   const owingIOUs = [...(owingByUserId || []), ...(owingByPhone || [])];
   for (const iou of owingIOUs) {
-    const fromUser = iou.from_user as { phone: string; display_name: string } | null;
+    const fromUser = extractUser(iou.from_user as JoinedUser);
     if (!fromUser) continue;
     
     // Skip self

@@ -28,7 +28,7 @@ export async function createUser(phone: string, displayName: string): Promise<Us
   const supabase = getSupabase();
   // Try to find existing user first
   const { data: existing } = await supabase
-    .from("users")
+    .from("iou_users")
     .select("*")
     .eq("phone", phone)
     .single();
@@ -37,7 +37,7 @@ export async function createUser(phone: string, displayName: string): Promise<Us
     // Update display name if different
     if (existing.display_name !== displayName) {
       const { data: updated } = await supabase
-        .from("users")
+        .from("iou_users")
         .update({ display_name: displayName })
         .eq("id", existing.id)
         .select()
@@ -49,7 +49,7 @@ export async function createUser(phone: string, displayName: string): Promise<Us
 
   // Create new user
   const { data, error } = await supabase
-    .from("users")
+    .from("iou_users")
     .insert({ phone, display_name: displayName })
     .select()
     .single();
@@ -61,7 +61,7 @@ export async function createUser(phone: string, displayName: string): Promise<Us
 export async function getUserByPhone(phone: string): Promise<User | null> {
   const supabase = getSupabase();
   const { data } = await supabase
-    .from("users")
+    .from("iou_users")
     .select("*")
     .eq("phone", phone)
     .single();
@@ -72,7 +72,7 @@ export async function getUserByPhone(phone: string): Promise<User | null> {
 export async function getUserById(id: string): Promise<User | null> {
   const supabase = getSupabase();
   const { data } = await supabase
-    .from("users")
+    .from("iou_users")
     .select("*")
     .eq("id", id)
     .single();
@@ -90,13 +90,13 @@ export async function createIOU(
   const supabase = getSupabase();
   // Check if toPhone matches an existing user
   const { data: toUser } = await supabase
-    .from("users")
+    .from("iou_users")
     .select("id")
     .eq("phone", toPhone)
     .single();
 
   const { data, error } = await supabase
-    .from("ious")
+    .from("iou_ious")
     .insert({
       from_user_id: fromUserId,
       to_phone: toPhone,
@@ -118,32 +118,32 @@ export async function getIOUsByUser(userId: string): Promise<{ owed: IOU[]; owin
 
   // IOUs where this user owes someone
   const { data: owed } = await supabase
-    .from("ious")
+    .from("iou_ious")
     .select(`
       *,
-      from_user:users!ious_from_user_id_fkey(*),
-      to_user:users!ious_to_user_id_fkey(*)
+      from_user:iou_users!iou_ious_from_user_id_fkey(*),
+      to_user:iou_users!iou_ious_to_user_id_fkey(*)
     `)
     .eq("from_user_id", userId)
     .order("created_at", { ascending: false });
 
   // IOUs where this user is owed (by phone or userId)
   const { data: owingByUserId } = await supabase
-    .from("ious")
+    .from("iou_ious")
     .select(`
       *,
-      from_user:users!ious_from_user_id_fkey(*),
-      to_user:users!ious_to_user_id_fkey(*)
+      from_user:iou_users!iou_ious_from_user_id_fkey(*),
+      to_user:iou_users!iou_ious_to_user_id_fkey(*)
     `)
     .eq("to_user_id", userId)
     .order("created_at", { ascending: false });
 
   const { data: owingByPhone } = await supabase
-    .from("ious")
+    .from("iou_ious")
     .select(`
       *,
-      from_user:users!ious_from_user_id_fkey(*),
-      to_user:users!ious_to_user_id_fkey(*)
+      from_user:iou_users!iou_ious_from_user_id_fkey(*),
+      to_user:iou_users!iou_ious_to_user_id_fkey(*)
     `)
     .eq("to_phone", user.phone)
     .is("to_user_id", null)
@@ -164,11 +164,11 @@ export async function getIOUsByUser(userId: string): Promise<{ owed: IOU[]; owin
 export async function getIOUById(id: string): Promise<IOU | null> {
   const supabase = getSupabase();
   const { data } = await supabase
-    .from("ious")
+    .from("iou_ious")
     .select(`
       *,
-      from_user:users!ious_from_user_id_fkey(*),
-      to_user:users!ious_to_user_id_fkey(*)
+      from_user:iou_users!iou_ious_from_user_id_fkey(*),
+      to_user:iou_users!iou_ious_to_user_id_fkey(*)
     `)
     .eq("id", id)
     .single();
@@ -179,11 +179,11 @@ export async function getIOUById(id: string): Promise<IOU | null> {
 export async function getIOUByShareToken(token: string): Promise<IOU | null> {
   const supabase = getSupabase();
   const { data } = await supabase
-    .from("ious")
+    .from("iou_ious")
     .select(`
       *,
-      from_user:users!ious_from_user_id_fkey(*),
-      to_user:users!ious_to_user_id_fkey(*)
+      from_user:iou_users!iou_ious_from_user_id_fkey(*),
+      to_user:iou_users!iou_ious_to_user_id_fkey(*)
     `)
     .eq("share_token", token)
     .single();
@@ -194,7 +194,7 @@ export async function getIOUByShareToken(token: string): Promise<IOU | null> {
 export async function markIOURepaid(id: string): Promise<IOU | null> {
   const supabase = getSupabase();
   const { data, error } = await supabase
-    .from("ious")
+    .from("iou_ious")
     .update({
       status: "repaid",
       repaid_at: new Date().toISOString(),
@@ -202,8 +202,8 @@ export async function markIOURepaid(id: string): Promise<IOU | null> {
     .eq("id", id)
     .select(`
       *,
-      from_user:users!ious_from_user_id_fkey(*),
-      to_user:users!ious_to_user_id_fkey(*)
+      from_user:iou_users!iou_ious_from_user_id_fkey(*),
+      to_user:iou_users!iou_ious_to_user_id_fkey(*)
     `)
     .single();
 
@@ -214,7 +214,7 @@ export async function markIOURepaid(id: string): Promise<IOU | null> {
 export async function linkIOUToUser(iouId: string, userId: string): Promise<void> {
   const supabase = getSupabase();
   await supabase
-    .from("ious")
+    .from("iou_ious")
     .update({ to_user_id: userId })
     .eq("id", iouId)
     .is("to_user_id", null);

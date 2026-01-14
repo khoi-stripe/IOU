@@ -33,6 +33,8 @@ export async function createUser(phone: string, displayName: string): Promise<Us
     .eq("phone", phone)
     .single();
 
+  let user: User;
+
   if (existing) {
     // Update display name if different
     if (existing.display_name !== displayName) {
@@ -42,20 +44,36 @@ export async function createUser(phone: string, displayName: string): Promise<Us
         .eq("id", existing.id)
         .select()
         .single();
-      return updated as User;
+      user = updated as User;
+    } else {
+      user = existing as User;
     }
-    return existing as User;
+  } else {
+    // Create new user
+    const { data, error } = await supabase
+      .from("iou_users")
+      .insert({ phone, display_name: displayName })
+      .select()
+      .single();
+
+    if (error) throw error;
+    user = data as User;
   }
 
-  // Create new user
-  const { data, error } = await supabase
-    .from("iou_users")
-    .insert({ phone, display_name: displayName })
-    .select()
-    .single();
+  // Link any existing IOUs that reference this phone number
+  await linkIOUsToUser(phone, user.id);
 
-  if (error) throw error;
-  return data as User;
+  return user;
+}
+
+// Link IOUs by phone to a user ID
+async function linkIOUsToUser(phone: string, userId: string): Promise<void> {
+  const supabase = getSupabase();
+  await supabase
+    .from("iou_ious")
+    .update({ to_user_id: userId })
+    .eq("to_phone", phone)
+    .is("to_user_id", null);
 }
 
 export async function getUserByPhone(phone: string): Promise<User | null> {

@@ -37,6 +37,11 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<Tab>("owe");
   const [filter, setFilter] = useState<Filter>("all");
 
+  async function handleLogout() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/");
+  }
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -101,17 +106,22 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="flex flex-col h-screen pb-2">
+    <div className="flex flex-col h-full pt-4 pb-16">
       {/* Header */}
-      <header className="flex items-center justify-between px-4 mb-4">
+      <header className="flex items-center justify-between px-4 mb-4 shrink-0">
         <h1 className="text-lg" style={{ letterSpacing: '0.1em' }}>👁️🅾️🐑</h1>
-        <span className="text-sm font-medium">{user?.display_name}</span>
+        <button 
+          onClick={handleLogout}
+          className="text-sm font-medium hover:underline underline-offset-4"
+        >
+          {user?.display_name} ↗
+        </button>
       </header>
 
       {/* Tabs + Content Container */}
-      <div>
+      <div className="flex flex-col flex-1 min-h-0 mb-2">
         {/* Tabs */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 shrink-0">
           <button
             onClick={() => setActiveTab("owe")}
             className={`flex-1 py-4 px-4 text-left transition-colors border-t border-l border-r rounded-t ${
@@ -143,9 +153,9 @@ export default function Dashboard() {
         </div>
 
         {/* Content Container */}
-        <div className="border border-[var(--color-accent)] flex flex-col flex-1 min-h-0 mb-2">
-          {/* Filters - sticky */}
-          <div className="flex gap-3 text-xs p-3 bg-[var(--color-bg)] sticky top-0 z-10 border-b border-[var(--color-border)]">
+        <div className="border border-[var(--color-accent)] flex flex-col flex-1 min-h-0 rounded-b">
+          {/* Filters */}
+          <div className="flex gap-3 text-xs p-3 bg-[var(--color-bg)] shrink-0">
             <button
               onClick={() => setFilter("all")}
               className={`transition-colors flex items-center gap-1.5 ${
@@ -185,22 +195,22 @@ export default function Dashboard() {
           </div>
 
           {/* List - scrollable */}
-          <div className="space-y-3 p-3 overflow-y-auto flex-1">
-        {filtered.length === 0 ? (
-          <p className="text-center py-12 text-[var(--color-text-muted)] text-sm">
-            No IOUs yet
-          </p>
-        ) : (
-          filtered.map((iou) => (
-            <IOUCard
-              key={iou.id}
-              iou={iou}
-              isOwe={activeTab === "owe"}
-              onMarkRepaid={() => handleMarkRepaid(iou.id)}
-              onShare={() => copyShareLink(iou.share_token)}
-            />
-          ))
-        )}
+          <div className="space-y-3 p-3 overflow-y-auto flex-1 min-h-0">
+            {filtered.length === 0 ? (
+              <p className="text-center py-12 text-[var(--color-text-muted)] text-sm">
+                No IOUs yet
+              </p>
+            ) : (
+              filtered.map((iou) => (
+                <IOUCard
+                  key={iou.id}
+                  iou={iou}
+                  isOwe={activeTab === "owe"}
+                  onMarkRepaid={() => handleMarkRepaid(iou.id)}
+                  onShare={() => copyShareLink(iou.share_token)}
+                />
+              ))
+            )}
           </div>
         </div>
       </div>
@@ -208,7 +218,7 @@ export default function Dashboard() {
       {/* Fixed bottom button */}
       <Link
         href="/new"
-        className="fixed bottom-0 left-0 right-0 m-4 py-4 bg-[var(--color-accent)] text-[var(--color-bg)] text-center text-sm font-bold rounded-full hover:opacity-90 transition-opacity"
+        className="fixed bottom-0 left-0 right-0 m-2 py-4 bg-[var(--color-accent)] text-[var(--color-bg)] text-center text-sm font-bold rounded-full hover:opacity-90 transition-opacity"
       >
         + NEW
       </Link>
@@ -265,8 +275,11 @@ function IOUCard({
       {/* Content */}
       <div className="space-y-1">
         <p className="text-sm">
-          {isOwe ? "You owe" : "Owes you"}{" "}
-          <span className="font-bold">{personName}</span>
+          {isOwe ? (
+            <>You owe <span className="font-bold">{personName}</span></>
+          ) : (
+            <><span className="font-bold">{personName}</span> owes you</>
+          )}
         </p>
         <p className="text-[var(--color-text-muted)] text-sm">{iou.description}</p>
       </div>

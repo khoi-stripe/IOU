@@ -110,9 +110,9 @@ export default function Home() {
     "flex-1 py-3 border border-[var(--color-border)] text-[var(--color-text)] rounded-full text-sm uppercase tracking-[0.1em] font-medium hover:border-[var(--color-accent)] transition-colors";
 
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Header - fixed at top */}
-      <header className="pt-8 pb-4 text-center">
+    <div className="h-dvh flex flex-col px-2">
+      {/* Header */}
+      <header className="pt-8 pb-4 text-center shrink-0">
         <h1 className="text-2xl" style={{ letterSpacing: "0.3em" }}>
           👁️🅾️🐑
         </h1>
@@ -121,10 +121,11 @@ export default function Home() {
         </p>
       </header>
 
-      {/* Form - pushed to bottom */}
-      <div className="flex-1" />
+      {/* Spacer - pushes form to bottom */}
+      <div className="flex-1 min-h-0" />
 
-      <div className="pb-8 px-2">
+      {/* Form content */}
+      <div className="shrink-0 pb-8">
         {step === "phone" && (
           <form onSubmit={handlePhoneSubmit} className="space-y-6">
             <div>

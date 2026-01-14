@@ -180,16 +180,17 @@ export default function NewIOU() {
     "flex-1 py-3 border border-[var(--color-border)] text-[var(--color-text)] rounded-full text-sm uppercase tracking-[0.1em] font-medium hover:border-[var(--color-accent)] transition-colors";
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="h-dvh flex flex-col px-2">
       {/* Header */}
-      <header className="pt-8 pb-4 text-center">
+      <header className="pt-8 pb-4 text-center shrink-0">
         <h1 className="text-lg font-medium">New IOU</h1>
       </header>
 
-      {/* Form - pushed to bottom */}
-      <div className="flex-1" />
+      {/* Spacer - pushes form to bottom */}
+      <div className="flex-1 min-h-0" />
 
-      <div className="pb-8 px-2">
+      {/* Form content */}
+      <div className="shrink-0 pb-8">
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Recipient */}
           <div>

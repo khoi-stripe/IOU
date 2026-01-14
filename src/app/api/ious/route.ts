@@ -42,17 +42,18 @@ export async function POST(request: NextRequest) {
 
     const { toPhone, description, photoUrl } = await request.json();
 
-    if (!toPhone || !description) {
+    // Require at least one of: recipient, description, or photo
+    if (!toPhone && !description && !photoUrl) {
       return NextResponse.json(
-        { error: "Recipient phone and description required" },
+        { error: "At least a recipient, description, or photo is required" },
         { status: 400 }
       );
     }
 
-    // Normalize phone number
-    const normalizedPhone = toPhone.replace(/\D/g, "");
+    // Normalize phone number if provided
+    const normalizedPhone = toPhone ? toPhone.replace(/\D/g, "") : null;
 
-    const iou = await createIOU(userId, normalizedPhone, description, photoUrl);
+    const iou = await createIOU(userId, normalizedPhone, description || null, photoUrl);
 
     return NextResponse.json({ iou: enrichIOU(iou) });
   } catch {

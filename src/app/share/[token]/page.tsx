@@ -13,9 +13,9 @@ interface User {
 interface IOU {
   id: string;
   from_user_id: string;
-  to_phone: string;
+  to_phone: string | null;
   to_user_id: string | null;
-  description: string;
+  description: string | null;
   photo_url: string | null;
   status: "pending" | "repaid";
   share_token: string;
@@ -99,7 +99,11 @@ export default function SharePage() {
           <p className="text-lg">
             <span className="font-bold">{fromName}</span> owes you
           </p>
-          <p className="text-2xl font-bold">{iou.description}</p>
+          {iou.description ? (
+            <p className="text-2xl font-bold">{iou.description}</p>
+          ) : (
+            <p className="text-lg text-[var(--color-text-muted)] italic">a favor</p>
+          )}
         </div>
 
         {iou.photo_url && (

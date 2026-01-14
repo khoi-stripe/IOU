@@ -1,19 +1,111 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+
+interface Contact {
+  phone: string;
+  displayName: string | null;
+  isRegistered: boolean;
+}
 
 export default function NewIOU() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [searchValue, setSearchValue] = useState("");
   const [toPhone, setToPhone] = useState("");
+  const [showDropdown, setShowDropdown] = useState(false);
   const [description, setDescription] = useState("");
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Fetch contacts on mount
+  useEffect(() => {
+    async function fetchContacts() {
+      try {
+        const res = await fetch("/api/contacts");
+        if (res.ok) {
+          const data = await res.json();
+          setContacts(data.contacts || []);
+        }
+      } catch {
+        // Silently fail - contacts are optional
+      }
+    }
+    fetchContacts();
+  }, []);
+
+  // Filter contacts based on search
+  const filteredContacts = contacts.filter((contact) => {
+    const search = searchValue.toLowerCase();
+    const nameMatch = contact.displayName?.toLowerCase().includes(search);
+    const phoneMatch = contact.phone.includes(search.replace(/\D/g, ""));
+    return nameMatch || phoneMatch;
+  });
+
+  // Check for duplicate names (for disambiguation)
+  const nameCounts = contacts.reduce((acc, c) => {
+    if (c.displayName) {
+      acc[c.displayName] = (acc[c.displayName] || 0) + 1;
+    }
+    return acc;
+  }, {} as Record<string, number>);
+
+  function formatPhone(phone: string): string {
+    // Show last 4 digits
+    return `•••${phone.slice(-4)}`;
+  }
+
+  function getDisplayLabel(contact: Contact): string {
+    if (!contact.displayName) {
+      return contact.phone;
+    }
+    // If duplicate name, disambiguate with phone
+    if (nameCounts[contact.displayName] > 1) {
+      return `${contact.displayName} (${formatPhone(contact.phone)})`;
+    }
+    return contact.displayName;
+  }
+
+  function handleSelectContact(contact: Contact) {
+    setSearchValue(getDisplayLabel(contact));
+    setToPhone(contact.phone);
+    setShowDropdown(false);
+  }
+
+  function handleInputChange(value: string) {
+    setSearchValue(value);
+    setShowDropdown(true);
+
+    // If it looks like a phone number (mostly digits), use it directly
+    const digitsOnly = value.replace(/\D/g, "");
+    if (digitsOnly.length >= 7) {
+      setToPhone(digitsOnly);
+    } else {
+      // Clear phone if it's not a valid number and no contact selected
+      const matchedContact = contacts.find(
+        (c) =>
+          c.displayName?.toLowerCase() === value.toLowerCase() ||
+          c.phone === digitsOnly
+      );
+      if (matchedContact) {
+        setToPhone(matchedContact.phone);
+      } else if (digitsOnly.length === 0) {
+        setToPhone("");
+      }
+    }
+  }
+
+  function handleInputBlur() {
+    // Delay to allow click on dropdown item
+    setTimeout(() => setShowDropdown(false), 150);
+  }
 
   async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -45,13 +137,24 @@ export default function NewIOU() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+
+    // Validate we have at least something
+    if (!toPhone && !description && !photoUrl) {
+      setError("Add a recipient, description, or photo");
+      return;
+    }
+
     setLoading(true);
 
     try {
       const res = await fetch("/api/ious", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ toPhone, description, photoUrl }),
+        body: JSON.stringify({ 
+          toPhone: toPhone || null, 
+          description: description || null, 
+          photoUrl 
+        }),
       });
 
       if (!res.ok) {
@@ -84,18 +187,49 @@ export default function NewIOU() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
-          <label htmlFor="toPhone" className="block text-sm">
+          <label htmlFor="recipient" className="block text-sm">
             Who do you owe?
           </label>
-          <input
-            id="toPhone"
-            type="tel"
-            value={toPhone}
-            onChange={(e) => setToPhone(e.target.value)}
-            placeholder="Their phone number"
-            required
-            className="w-full px-3 py-2 border border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text)] focus:outline-none focus:border-[var(--color-accent)]"
-          />
+          <div className="relative">
+            <input
+              ref={inputRef}
+              id="recipient"
+              type="text"
+              value={searchValue}
+              onChange={(e) => handleInputChange(e.target.value)}
+              onFocus={() => setShowDropdown(true)}
+              onBlur={handleInputBlur}
+              placeholder="Name or phone number"
+              autoComplete="off"
+              className="w-full px-3 py-2 border border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text)] focus:outline-none focus:border-[var(--color-accent)]"
+            />
+
+            {/* Dropdown */}
+            {showDropdown && filteredContacts.length > 0 && (
+              <div className="absolute z-10 w-full mt-1 border border-[var(--color-border)] bg-[var(--color-bg)] max-h-48 overflow-y-auto">
+                {filteredContacts.map((contact) => (
+                  <button
+                    key={contact.phone}
+                    type="button"
+                    onClick={() => handleSelectContact(contact)}
+                    className="w-full px-3 py-2 text-left text-sm hover:bg-[var(--color-bg-secondary)] flex items-center justify-between"
+                  >
+                    <span>{getDisplayLabel(contact)}</span>
+                    {!contact.isRegistered && (
+                      <span className="text-xs text-[var(--color-text-muted)]">
+                        not registered
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          {toPhone && searchValue !== toPhone && (
+            <p className="text-xs text-[var(--color-text-muted)]">
+              → {toPhone}
+            </p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -107,7 +241,6 @@ export default function NewIOU() {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Coffee, lunch, a favor..."
-            required
             rows={3}
             className="w-full px-3 py-2 border border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text)] focus:outline-none focus:border-[var(--color-accent)] resize-none"
           />
@@ -122,7 +255,7 @@ export default function NewIOU() {
             onChange={handlePhotoUpload}
             className="hidden"
           />
-          
+
           {photoUrl ? (
             <div className="relative">
               <img
@@ -166,5 +299,3 @@ export default function NewIOU() {
     </div>
   );
 }
-
-

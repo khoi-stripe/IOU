@@ -13,9 +13,9 @@ interface User {
 interface IOU {
   id: string;
   from_user_id: string;
-  to_phone: string;
+  to_phone: string | null;
   to_user_id: string | null;
-  description: string;
+  description: string | null;
   photo_url: string | null;
   status: "pending" | "repaid";
   share_token: string;
@@ -106,7 +106,7 @@ export default function IOUDetail() {
     );
   }
 
-  const toName = iou.to_user?.display_name || formatPhone(iou.to_phone);
+  const toName = iou.to_user?.display_name || (iou.to_phone ? formatPhone(iou.to_phone) : null);
 
   return (
     <div className="space-y-6">
@@ -129,15 +129,23 @@ export default function IOUDetail() {
       </header>
 
       <div className="space-y-4">
-        <div className="space-y-2">
-          <p className="text-sm text-[var(--color-text-muted)]">You owe</p>
-          <p className="text-xl font-bold">{toName}</p>
-        </div>
+        {toName && (
+          <div className="space-y-2">
+            <p className="text-sm text-[var(--color-text-muted)]">You owe</p>
+            <p className="text-xl font-bold">{toName}</p>
+          </div>
+        )}
 
-        <div className="space-y-2">
-          <p className="text-sm text-[var(--color-text-muted)]">For</p>
-          <p className="text-lg">{iou.description}</p>
-        </div>
+        {iou.description ? (
+          <div className="space-y-2">
+            <p className="text-sm text-[var(--color-text-muted)]">For</p>
+            <p className="text-lg">{iou.description}</p>
+          </div>
+        ) : !toName && (
+          <div className="space-y-2">
+            <p className="text-lg text-[var(--color-text-muted)] italic">No details yet</p>
+          </div>
+        )}
 
         {iou.photo_url && (
           <img

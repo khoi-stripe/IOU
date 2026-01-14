@@ -13,9 +13,9 @@ interface User {
 interface IOU {
   id: string;
   from_user_id: string;
-  to_phone: string;
+  to_phone: string | null;
   to_user_id: string | null;
-  description: string;
+  description: string | null;
   photo_url: string | null;
   status: "pending" | "repaid";
   share_token: string;
@@ -238,7 +238,7 @@ function IOUCard({
   onShare: () => void;
 }) {
   const personName = isOwe
-    ? iou.to_user?.display_name || formatPhone(iou.to_phone)
+    ? iou.to_user?.display_name || (iou.to_phone ? formatPhone(iou.to_phone) : null)
     : iou.from_user?.display_name || "Someone";
 
   const isPending = iou.status === "pending";
@@ -274,14 +274,21 @@ function IOUCard({
 
       {/* Content */}
       <div className="space-y-1">
-        <p className="text-sm">
-          {isOwe ? (
-            <>You owe <span className="font-bold">{personName}</span></>
-          ) : (
-            <><span className="font-bold">{personName}</span> owes you</>
-          )}
-        </p>
-        <p className="text-[var(--color-text-muted)] text-sm">{iou.description}</p>
+        {personName && (
+          <p className="text-sm">
+            {isOwe ? (
+              <>You owe <span className="font-bold">{personName}</span></>
+            ) : (
+              <><span className="font-bold">{personName}</span> owes you</>
+            )}
+          </p>
+        )}
+        {iou.description && (
+          <p className="text-[var(--color-text-muted)] text-sm">{iou.description}</p>
+        )}
+        {!personName && !iou.description && (
+          <p className="text-[var(--color-text-muted)] text-sm italic">No details yet</p>
+        )}
       </div>
 
       {/* Action buttons */}

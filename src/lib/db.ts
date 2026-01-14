@@ -12,9 +12,9 @@ export interface User {
 export interface IOU {
   id: string;
   from_user_id: string;
-  to_phone: string;
+  to_phone: string | null;
   to_user_id: string | null;
-  description: string;
+  description: string | null;
   photo_url: string | null;
   status: "pending" | "repaid";
   share_token: string;
@@ -23,6 +23,12 @@ export interface IOU {
   // Joined data
   from_user?: User;
   to_user?: User;
+}
+
+export interface Contact {
+  phone: string;
+  displayName: string | null;
+  isRegistered: boolean;
 }
 
 // User operations
@@ -153,24 +159,29 @@ export async function getUserById(id: string): Promise<User | null> {
 // IOU operations
 export async function createIOU(
   fromUserId: string,
-  toPhone: string,
-  description: string,
+  toPhone: string | null,
+  description: string | null,
   photoUrl?: string
 ): Promise<IOU> {
   const supabase = getSupabase();
+  
   // Check if toPhone matches an existing user
-  const { data: toUser } = await supabase
-    .from("iou_users")
-    .select("id")
-    .eq("phone", toPhone)
-    .single();
+  let toUserId: string | null = null;
+  if (toPhone) {
+    const { data: toUser } = await supabase
+      .from("iou_users")
+      .select("id")
+      .eq("phone", toPhone)
+      .single();
+    toUserId = toUser?.id || null;
+  }
 
   const { data, error } = await supabase
     .from("iou_ious")
     .insert({
       from_user_id: fromUserId,
       to_phone: toPhone,
-      to_user_id: toUser?.id || null,
+      to_user_id: toUserId,
       description,
       photo_url: photoUrl || null,
     })
@@ -293,4 +304,82 @@ export async function linkIOUToUser(iouId: string, userId: string): Promise<void
 // Helper to enrich IOU (already done via joins, but kept for compatibility)
 export function enrichIOU(iou: IOU): IOU {
   return iou;
+}
+
+// Get contacts for a user (people they've interacted with via IOUs)
+export async function getContactsForUser(userId: string): Promise<Contact[]> {
+  const supabase = getSupabase();
+  const user = await getUserById(userId);
+  if (!user) return [];
+
+  // Get IOUs where this user owes someone (to get to_phone/to_user)
+  const { data: owedIOUs } = await supabase
+    .from("iou_ious")
+    .select(`
+      to_phone,
+      to_user:iou_users!iou_ious_to_user_id_fkey(phone, display_name)
+    `)
+    .eq("from_user_id", userId);
+
+  // Get IOUs where this user is owed (to get from_user)
+  const { data: owingByUserId } = await supabase
+    .from("iou_ious")
+    .select(`
+      from_user:iou_users!iou_ious_from_user_id_fkey(phone, display_name)
+    `)
+    .eq("to_user_id", userId);
+
+  const { data: owingByPhone } = await supabase
+    .from("iou_ious")
+    .select(`
+      from_user:iou_users!iou_ious_from_user_id_fkey(phone, display_name)
+    `)
+    .eq("to_phone", user.phone);
+
+  // Build contacts map (keyed by phone)
+  const contactsMap = new Map<string, Contact>();
+
+  // From IOUs where user owes someone
+  for (const iou of owedIOUs || []) {
+    const phone = iou.to_phone;
+    const toUser = iou.to_user as { phone: string; display_name: string } | null;
+    
+    // Skip self
+    if (phone === user.phone) continue;
+
+    if (!contactsMap.has(phone)) {
+      contactsMap.set(phone, {
+        phone,
+        displayName: toUser?.display_name || null,
+        isRegistered: !!toUser,
+      });
+    } else if (toUser && !contactsMap.get(phone)!.displayName) {
+      // Update with name if we now have it
+      contactsMap.set(phone, {
+        phone,
+        displayName: toUser.display_name,
+        isRegistered: true,
+      });
+    }
+  }
+
+  // From IOUs where user is owed
+  const owingIOUs = [...(owingByUserId || []), ...(owingByPhone || [])];
+  for (const iou of owingIOUs) {
+    const fromUser = iou.from_user as { phone: string; display_name: string } | null;
+    if (!fromUser) continue;
+    
+    // Skip self
+    if (fromUser.phone === user.phone) continue;
+
+    if (!contactsMap.has(fromUser.phone)) {
+      contactsMap.set(fromUser.phone, {
+        phone: fromUser.phone,
+        displayName: fromUser.display_name,
+        isRegistered: true,
+      });
+    }
+  }
+
+  return Array.from(contactsMap.values());
 }

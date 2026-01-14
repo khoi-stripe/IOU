@@ -143,9 +143,9 @@ export default function Dashboard() {
         </div>
 
         {/* Content Container */}
-        <div className="border border-[var(--color-accent)] p-3 space-y-4">
-          {/* Filters */}
-          <div className="flex gap-3 text-xs">
+        <div className="border border-[var(--color-accent)] flex flex-col" style={{ maxHeight: "calc(100vh - 180px)" }}>
+          {/* Filters - sticky */}
+          <div className="flex gap-3 text-xs p-3 bg-[var(--color-bg)] sticky top-0 z-10 border-b border-[var(--color-border)]">
             <button
               onClick={() => setFilter("all")}
               className={`transition-colors flex items-center gap-1.5 ${
@@ -184,8 +184,8 @@ export default function Dashboard() {
             </button>
           </div>
 
-          {/* List */}
-          <div className="space-y-3">
+          {/* List - scrollable */}
+          <div className="space-y-3 p-3 overflow-y-auto flex-1">
         {filtered.length === 0 ? (
           <p className="text-center py-12 text-[var(--color-text-muted)] text-sm">
             No IOUs yet

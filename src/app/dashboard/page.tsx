@@ -322,14 +322,14 @@ function IOUCard({
       <div className="flex gap-3">
         <button
           onClick={onShare}
-          className="flex-1 px-2 py-1 text-xs font-bold border border-[var(--color-border)] hover:border-[var(--color-accent)] transition-colors uppercase tracking-wide"
+          className="flex-1 px-2 py-1 text-xs font-bold border border-[var(--color-border)] hover:border-[var(--color-accent)] transition-colors uppercase"
         >
           Share
         </button>
         {isPending && isOwe && (
           <button
             onClick={onMarkRepaid}
-            className="flex-1 px-2 py-1 text-xs font-bold bg-[var(--color-accent)] text-[var(--color-bg)] hover:opacity-90 transition-opacity uppercase tracking-wide"
+            className="flex-1 px-2 py-1 text-xs font-bold bg-[var(--color-accent)] text-[var(--color-bg)] hover:opacity-90 transition-opacity uppercase"
           >
             Mark Repaid
           </button>

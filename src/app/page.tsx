@@ -99,15 +99,15 @@ export default function Home() {
   }
 
   // Shared styles
-  const labelClass = "block text-xs uppercase tracking-[0.15em] mb-2";
+  const labelClass = "block text-xs uppercase mb-2 font-medium";
   const inputClass =
     "w-full px-4 py-3 border border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text)] rounded-lg focus:outline-none focus:border-[var(--color-accent)]";
   const pinInputClass =
-    "w-full px-4 py-3 border border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text)] rounded-lg focus:outline-none focus:border-[var(--color-accent)] tracking-[1em] text-center text-lg";
+    "w-full px-4 py-3 border border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text)] rounded-lg focus:outline-none focus:border-[var(--color-accent)] text-center text-lg";
   const primaryButtonClass =
-    "flex-1 py-3 bg-[var(--color-accent)] text-[var(--color-bg)] rounded-full text-sm uppercase tracking-[0.1em] font-medium hover:opacity-80 disabled:opacity-50 transition-opacity";
+    "flex-1 py-3 bg-[var(--color-accent)] text-[var(--color-bg)] rounded-full text-sm uppercase font-medium hover:opacity-80 disabled:opacity-50 transition-opacity";
   const secondaryButtonClass =
-    "flex-1 py-3 border border-[var(--color-border)] text-[var(--color-text)] rounded-full text-sm uppercase tracking-[0.1em] font-medium hover:border-[var(--color-accent)] transition-colors";
+    "flex-1 py-3 border border-[var(--color-border)] text-[var(--color-text)] rounded-full text-sm uppercase font-medium hover:border-[var(--color-accent)] transition-colors";
 
   return (
     <div className="h-dvh flex flex-col px-2">

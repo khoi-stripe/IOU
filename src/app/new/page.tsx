@@ -171,13 +171,13 @@ export default function NewIOU() {
   }
 
   // Shared styles
-  const labelClass = "block text-xs uppercase tracking-[0.15em] mb-2";
+  const labelClass = "block text-xs uppercase mb-2 font-medium";
   const inputClass =
     "w-full px-4 py-3 border border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text)] rounded-lg focus:outline-none focus:border-[var(--color-accent)]";
   const primaryButtonClass =
-    "flex-1 py-3 bg-[var(--color-accent)] text-[var(--color-bg)] rounded-full text-sm uppercase tracking-[0.1em] font-medium hover:opacity-80 disabled:opacity-50 transition-opacity";
+    "flex-1 py-3 bg-[var(--color-accent)] text-[var(--color-bg)] rounded-full text-sm uppercase font-medium hover:opacity-80 disabled:opacity-50 transition-opacity";
   const secondaryButtonClass =
-    "flex-1 py-3 border border-[var(--color-border)] text-[var(--color-text)] rounded-full text-sm uppercase tracking-[0.1em] font-medium hover:border-[var(--color-accent)] transition-colors";
+    "flex-1 py-3 border border-[var(--color-border)] text-[var(--color-text)] rounded-full text-sm uppercase font-medium hover:border-[var(--color-accent)] transition-colors";
 
   return (
     <div className="h-dvh flex flex-col px-2">
@@ -278,7 +278,7 @@ export default function NewIOU() {
                     setPhotoUrl(null);
                     if (fileInputRef.current) fileInputRef.current.value = "";
                   }}
-                  className="absolute top-3 right-3 px-3 py-1 text-xs uppercase tracking-[0.1em] bg-[var(--color-bg)] border border-[var(--color-border)] rounded-full"
+                  className="absolute top-3 right-3 px-3 py-1 text-xs uppercase bg-[var(--color-bg)] border border-[var(--color-border)] rounded-full"
                 >
                   Remove
                 </button>
@@ -288,7 +288,7 @@ export default function NewIOU() {
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
-                className="w-full py-8 border border-dashed border-[var(--color-border)] rounded-lg text-[var(--color-text-muted)] hover:border-[var(--color-accent)] hover:text-[var(--color-text)] transition-colors text-sm uppercase tracking-[0.1em]"
+                className="w-full py-8 border border-dashed border-[var(--color-border)] rounded-lg text-[var(--color-text-muted)] hover:border-[var(--color-accent)] hover:text-[var(--color-text)] transition-colors text-sm uppercase"
               >
                 {uploading ? "Uploading..." : "Add Photo"}
               </button>

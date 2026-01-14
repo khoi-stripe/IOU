@@ -126,7 +126,7 @@ export default function Dashboard() {
             onClick={() => setActiveTab("owe")}
             className={`flex-1 py-4 px-4 text-left transition-colors rounded-t ${
               activeTab === "owe"
-                ? "border-t border-l border-r border-[var(--color-accent)] bg-[var(--color-bg)] relative z-10"
+                ? "border-t border-l border-r border-[#808080] bg-[var(--color-bg)] relative z-10"
                 : "bg-[var(--color-bg-secondary)] text-[var(--color-text-muted)]"
             }`}
             style={activeTab === "owe" ? { marginBottom: "-1px" } : {}}
@@ -140,7 +140,7 @@ export default function Dashboard() {
             onClick={() => setActiveTab("owed")}
             className={`flex-1 py-4 px-4 text-left transition-colors rounded-t ${
               activeTab === "owed"
-                ? "border-t border-l border-r border-[var(--color-accent)] bg-[var(--color-bg)] relative z-10"
+                ? "border-t border-l border-r border-[#808080] bg-[var(--color-bg)] relative z-10"
                 : "bg-[var(--color-bg-secondary)] text-[var(--color-text-muted)]"
             }`}
             style={activeTab === "owed" ? { marginBottom: "-1px" } : {}}
@@ -153,7 +153,7 @@ export default function Dashboard() {
         </div>
 
         {/* Content Container */}
-        <div className="border border-[var(--color-accent)] flex flex-col flex-1 min-h-0 rounded-b">
+        <div className="border border-[#808080] flex flex-col flex-1 min-h-0 rounded-b">
           {/* Filters */}
           <div className="flex gap-3 text-xs p-3 bg-[var(--color-bg)] shrink-0">
             <button
@@ -244,7 +244,7 @@ function IOUCard({
   const isPending = iou.status === "pending";
 
   return (
-    <div className="p-4 border border-[var(--color-border)] space-y-3">
+    <div className="p-4 bg-[var(--color-bg-secondary)] space-y-3 rounded-[4px]">
       {/* Top row: date + status */}
       <div className="flex items-center justify-between">
         <span className="text-xs text-[var(--color-text-muted)]">

@@ -1,9 +1,11 @@
 import { getSupabase } from "./supabase";
+import bcrypt from "bcryptjs";
 
 export interface User {
   id: string;
   phone: string;
   display_name: string;
+  pin_hash?: string;
   created_at: string;
 }
 
@@ -24,46 +26,96 @@ export interface IOU {
 }
 
 // User operations
-export async function createUser(phone: string, displayName: string): Promise<User> {
+
+// Check if a phone number is already registered and if it has a PIN
+export async function checkPhoneExists(phone: string): Promise<{ exists: boolean; hasPin: boolean }> {
   const supabase = getSupabase();
-  // Try to find existing user first
-  const { data: existing } = await supabase
+  const { data } = await supabase
     .from("iou_users")
-    .select("*")
+    .select("id, pin_hash")
     .eq("phone", phone)
     .single();
+  
+  return {
+    exists: !!data,
+    hasPin: !!data?.pin_hash,
+  };
+}
 
-  let user: User;
-
-  if (existing) {
-    // Update display name if different
-    if (existing.display_name !== displayName) {
-      const { data: updated } = await supabase
-        .from("iou_users")
-        .update({ display_name: displayName })
-        .eq("id", existing.id)
-        .select()
-        .single();
-      user = updated as User;
-    } else {
-      user = existing as User;
-    }
-  } else {
-    // Create new user
-    const { data, error } = await supabase
-      .from("iou_users")
-      .insert({ phone, display_name: displayName })
-      .select()
-      .single();
-
-    if (error) throw error;
-    user = data as User;
+// Create a new user with PIN (signup)
+export async function createUser(phone: string, displayName: string, pin: string): Promise<User> {
+  const supabase = getSupabase();
+  
+  // Check if phone already exists
+  const exists = await checkPhoneExists(phone);
+  if (exists) {
+    throw new Error("Phone number already registered");
   }
+
+  // Hash the PIN
+  const pinHash = await bcrypt.hash(pin, 10);
+
+  // Create new user
+  const { data, error } = await supabase
+    .from("iou_users")
+    .insert({ phone, display_name: displayName, pin_hash: pinHash })
+    .select()
+    .single();
+
+  if (error) throw error;
+  const user = data as User;
 
   // Link any existing IOUs that reference this phone number
   await linkIOUsToUser(phone, user.id);
 
   return user;
+}
+
+// Verify user PIN and return user (login)
+export async function verifyUser(phone: string, pin: string): Promise<User | null> {
+  const supabase = getSupabase();
+  const { data } = await supabase
+    .from("iou_users")
+    .select("*")
+    .eq("phone", phone)
+    .single();
+
+  if (!data || !data.pin_hash) {
+    return null;
+  }
+
+  const valid = await bcrypt.compare(pin, data.pin_hash);
+  if (!valid) {
+    return null;
+  }
+
+  // Link any existing IOUs that reference this phone number
+  await linkIOUsToUser(phone, data.id);
+
+  return data as User;
+}
+
+// Set PIN for existing user who doesn't have one
+export async function setUserPin(phone: string, pin: string): Promise<User | null> {
+  const supabase = getSupabase();
+  
+  // Hash the PIN
+  const pinHash = await bcrypt.hash(pin, 10);
+
+  const { data, error } = await supabase
+    .from("iou_users")
+    .update({ pin_hash: pinHash })
+    .eq("phone", phone)
+    .is("pin_hash", null)
+    .select()
+    .single();
+
+  if (error || !data) return null;
+
+  // Link any existing IOUs that reference this phone number
+  await linkIOUsToUser(phone, data.id);
+
+  return data as User;
 }
 
 // Link IOUs by phone to a user ID

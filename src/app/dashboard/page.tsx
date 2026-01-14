@@ -143,7 +143,7 @@ export default function Dashboard() {
         </div>
 
         {/* Content Container */}
-        <div className="border border-[var(--color-accent)] p-4 space-y-4">
+        <div className="border border-[var(--color-accent)] p-3 space-y-4">
           {/* Filters */}
           <div className="flex gap-3 text-xs">
             <button

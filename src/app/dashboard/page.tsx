@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Loader from "@/components/Loader";
+import { useToast } from "@/components/Toast";
 
 interface User {
   id: string;
@@ -30,6 +32,7 @@ type Filter = "all" | "pending" | "repaid";
 
 export default function Dashboard() {
   const router = useRouter();
+  const { showToast } = useToast();
   const [user, setUser] = useState<User | null>(null);
   const [owed, setOwed] = useState<IOU[]>([]);
   const [owing, setOwing] = useState<IOU[]>([]);
@@ -104,13 +107,13 @@ export default function Dashboard() {
         await navigator.share(shareData);
       } else {
         await navigator.clipboard.writeText(url);
-        alert("Link copied!");
+        showToast("Link copied!");
       }
     } catch (err) {
       // User cancelled share or error - silently ignore
       if (err instanceof Error && err.name !== "AbortError") {
         await navigator.clipboard.writeText(url);
-        alert("Link copied!");
+        showToast("Link copied!");
       }
     }
   }
@@ -125,11 +128,7 @@ export default function Dashboard() {
   const owedCount = owing.filter((i) => i.status === "pending").length;
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-[var(--color-text-muted)]">Loading...</p>
-      </div>
-    );
+    return <Loader className="h-dvh" />;
   }
 
   return (
@@ -322,14 +321,14 @@ function IOUCard({
       <div className="flex gap-3">
         <button
           onClick={onShare}
-          className="flex-1 px-2 py-1 text-xs font-bold border border-[var(--color-border)] hover:border-[var(--color-accent)] transition-colors uppercase"
+          className="flex-1 px-2 py-1 text-xs font-bold bg-white text-black hover:opacity-80 transition-opacity uppercase rounded-full"
         >
           Share
         </button>
         {isPending && isOwe && (
           <button
             onClick={onMarkRepaid}
-            className="flex-1 px-2 py-1 text-xs font-bold bg-[var(--color-accent)] text-[var(--color-bg)] hover:opacity-90 transition-opacity uppercase"
+            className="flex-1 px-2 py-1 text-xs font-bold bg-[var(--color-accent)] text-[var(--color-bg)] hover:opacity-90 transition-opacity uppercase rounded-full"
           >
             Mark Repaid
           </button>

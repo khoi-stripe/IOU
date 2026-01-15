@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import Loader from "@/components/Loader";
 
 interface User {
   id: string;
@@ -59,11 +60,7 @@ export default function SharePage() {
   }, [token]);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-[var(--color-text-muted)]">Loading...</p>
-      </div>
-    );
+    return <Loader className="h-dvh" />;
   }
 
   if (error || !iou) {

@@ -132,8 +132,8 @@ export default function NewIOU() {
     e.preventDefault();
     setError("");
 
-    if (!toPhone && !description && !photoUrl) {
-      setError("Add a recipient, description, or photo");
+    if (!description) {
+      setError("Please describe what the IOU is for");
       return;
     }
 
@@ -183,7 +183,7 @@ export default function NewIOU() {
     <div className="h-dvh flex flex-col px-2">
       {/* Header */}
       <header className="pt-8 pb-4 text-center shrink-0">
-        <h1 className="text-lg font-medium">New IOU</h1>
+        <h1 className="text-lg font-medium">New <span style={{ letterSpacing: "0.2em" }}>👁️🅾️🐑</span></h1>
       </header>
 
       {/* Spacer - pushes form to bottom */}
@@ -250,6 +250,7 @@ export default function NewIOU() {
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Coffee, lunch, a favor..."
               rows={3}
+              required
               className={inputClass + " resize-none"}
             />
           </div>

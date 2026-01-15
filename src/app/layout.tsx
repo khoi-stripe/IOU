@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
+import Providers from "@/components/Providers";
 
 const ibmPlexMono = IBM_Plex_Mono({
   subsets: ["latin"],
@@ -21,9 +22,11 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${ibmPlexMono.variable} h-full`}>
       <body className="h-full antialiased">
-        <main className="max-w-md mx-auto px-2 h-full">
-          {children}
-        </main>
+        <Providers>
+          <main className="max-w-md mx-auto px-2 h-full">
+            {children}
+          </main>
+        </Providers>
       </body>
     </html>
   );

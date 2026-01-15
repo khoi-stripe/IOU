@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import Loader from "@/components/Loader";
+import { useToast } from "@/components/Toast";
 
 interface User {
   id: string;
@@ -28,6 +30,7 @@ interface IOU {
 export default function IOUDetail() {
   const params = useParams();
   const router = useRouter();
+  const { showToast } = useToast();
   const id = params.id as string;
 
   const [iou, setIou] = useState<IOU | null>(null);
@@ -93,23 +96,19 @@ export default function IOUDetail() {
         await navigator.share(shareData);
       } else {
         await navigator.clipboard.writeText(url);
-        alert("Link copied!");
+        showToast("Link copied!");
       }
     } catch (err) {
       // User cancelled share or error - silently ignore
       if (err instanceof Error && err.name !== "AbortError") {
         await navigator.clipboard.writeText(url);
-        alert("Link copied!");
+        showToast("Link copied!");
       }
     }
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-[var(--color-text-muted)]">Loading...</p>
-      </div>
-    );
+    return <Loader className="h-dvh" />;
   }
 
   if (error || !iou) {
@@ -188,7 +187,7 @@ export default function IOUDetail() {
       <div className="space-y-3">
         <button
           onClick={handleShare}
-          className="w-full py-2 border border-[var(--color-border)] hover:border-[var(--color-accent)] transition-colors"
+          className="w-full py-2 bg-white text-black hover:opacity-80 transition-opacity rounded-full"
         >
           Share
         </button>
@@ -196,7 +195,7 @@ export default function IOUDetail() {
         {iou.status === "pending" && (
           <button
             onClick={handleMarkRepaid}
-            className="w-full py-2 bg-[var(--color-accent)] text-[var(--color-bg)] hover:opacity-80 transition-opacity"
+            className="w-full py-2 bg-[var(--color-accent)] text-[var(--color-bg)] hover:opacity-80 transition-opacity rounded-full"
           >
             Mark as Repaid
           </button>

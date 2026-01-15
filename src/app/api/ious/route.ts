@@ -42,10 +42,10 @@ export async function POST(request: NextRequest) {
 
     const { toPhone, description, photoUrl } = await request.json();
 
-    // Require at least one of: recipient, description, or photo
-    if (!toPhone && !description && !photoUrl) {
+    // Description is required
+    if (!description) {
       return NextResponse.json(
-        { error: "At least a recipient, description, or photo is required" },
+        { error: "Description is required" },
         { status: 400 }
       );
     }

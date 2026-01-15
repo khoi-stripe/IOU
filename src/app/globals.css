@@ -44,3 +44,60 @@ button {
   font-weight: 500;
 }
 
+/* Loader animation keyframes */
+@keyframes emoji-pulse {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  20% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  33.33% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+}
+
+.animate-emoji-1,
+.animate-emoji-2,
+.animate-emoji-3 {
+  opacity: 0;
+}
+
+.animate-emoji-1 {
+  animation: emoji-pulse 1.8s ease-in-out infinite;
+  animation-delay: 0s;
+}
+
+.animate-emoji-2 {
+  animation: emoji-pulse 1.8s ease-in-out infinite;
+  animation-delay: 0.6s;
+}
+
+.animate-emoji-3 {
+  animation: emoji-pulse 1.8s ease-in-out infinite;
+  animation-delay: 1.2s;
+}
+
+/* Toast animation */
+@keyframes toast-in {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-toast-in {
+  animation: toast-in 0.2s ease-out;
+}
+

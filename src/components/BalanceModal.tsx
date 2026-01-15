@@ -4,12 +4,14 @@ import { useEffect } from "react";
 import Logo from "./Logo";
 
 interface BalanceModalProps {
-  oweCount: number;
-  owedCount: number;
+  oweCount: number;        // outstanding owe
+  owedCount: number;       // outstanding owed
+  oweRepaidCount: number;  // repaid owe
+  owedRepaidCount: number; // repaid owed
   onClose: () => void;
 }
 
-export default function BalanceModal({ oweCount, owedCount, onClose }: BalanceModalProps) {
+export default function BalanceModal({ oweCount, owedCount, oweRepaidCount, owedRepaidCount, onClose }: BalanceModalProps) {
   // Prevent body scroll when modal is open
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -61,7 +63,7 @@ export default function BalanceModal({ oweCount, owedCount, onClose }: BalanceMo
       <div className="flex flex-col w-full max-w-md px-2">
         {/* Header */}
         <header className="flex items-center justify-between px-4 pt-4 shrink-0">
-          <button className="text-lg -mt-[6px]">
+          <button className="text-lg -mt-[9px]">
             <Logo />
           </button>
           <button
@@ -78,7 +80,7 @@ export default function BalanceModal({ oweCount, owedCount, onClose }: BalanceMo
           {/* Balanced state - half moon */}
           {isBalanced && (
             <div
-              className="rounded-full overflow-hidden border-2 border-[var(--color-accent)] relative flex"
+              className="rounded-full overflow-hidden border-2 border-[var(--color-accent)] relative flex animate-circle-outer"
               style={{
                 width: maxRadius * 2,
                 height: maxRadius * 2,
@@ -96,7 +98,7 @@ export default function BalanceModal({ oweCount, owedCount, onClose }: BalanceMo
             <>
               {/* Outer white circle */}
               <div
-                className="bg-[var(--color-bg)] border-2 border-[var(--color-accent)] rounded-full"
+                className="bg-[var(--color-bg)] border-2 border-[var(--color-accent)] rounded-full animate-circle-outer"
                 style={{
                   width: maxRadius * 2,
                   height: maxRadius * 2,
@@ -105,7 +107,7 @@ export default function BalanceModal({ oweCount, owedCount, onClose }: BalanceMo
               {/* Black hole (what cancels out) */}
               {holeRadius > 0 && (
                 <div
-                  className="bg-[var(--color-accent)] rounded-full absolute"
+                  className="bg-[var(--color-accent)] rounded-full absolute animate-circle-inner"
                   style={{
                     width: holeRadius * 2,
                     height: holeRadius * 2,
@@ -120,7 +122,7 @@ export default function BalanceModal({ oweCount, owedCount, onClose }: BalanceMo
             <>
               {/* Outer black circle */}
               <div
-                className="bg-[var(--color-accent)] rounded-full"
+                className="bg-[var(--color-accent)] rounded-full animate-circle-outer"
                 style={{
                   width: maxRadius * 2,
                   height: maxRadius * 2,
@@ -129,7 +131,7 @@ export default function BalanceModal({ oweCount, owedCount, onClose }: BalanceMo
               {/* White hole (what cancels out) */}
               {holeRadius > 0 && (
                 <div
-                  className="bg-[var(--color-bg)] border-2 border-[var(--color-accent)] rounded-full absolute"
+                  className="bg-[var(--color-bg)] border-2 border-[var(--color-accent)] rounded-full absolute animate-circle-inner"
                   style={{
                     width: holeRadius * 2,
                     height: holeRadius * 2,
@@ -148,14 +150,33 @@ export default function BalanceModal({ oweCount, owedCount, onClose }: BalanceMo
       </div>
 
         {/* Legend */}
-        <div className="flex justify-center gap-4 pb-8 shrink-0">
-          <div className="flex items-center gap-2 px-4 py-2 border border-[var(--color-border)] rounded">
-            <span className="text-sm font-medium uppercase">Owe</span>
-            <span className="text-sm font-medium">{oweCount}</span>
+        <div className="pb-8 shrink-0 px-4">
+          {/* Header row */}
+          <div className="grid grid-cols-4 gap-2 mb-2 text-xs text-[var(--color-text-muted)] uppercase">
+            <div></div>
+            <div className="text-center">Outstanding</div>
+            <div className="text-center">Repaid</div>
+            <div className="text-center">Total</div>
           </div>
-          <div className="flex items-center gap-2 px-4 py-2 bg-[var(--color-accent)] text-[var(--color-bg)] rounded">
-            <span className="text-sm font-medium uppercase">Owed</span>
-            <span className="text-sm font-medium">{owedCount}</span>
+          {/* Owe row */}
+          <div className="grid grid-cols-4 gap-2 mb-2">
+            <div className="flex items-center">
+              <span className="w-3 h-3 rounded-full border border-[var(--color-accent)] bg-[var(--color-bg)] mr-2" />
+              <span className="text-sm font-medium uppercase">Owe</span>
+            </div>
+            <div className="text-center text-sm font-medium">{oweCount}</div>
+            <div className="text-center text-sm text-[var(--color-text-muted)]">{oweRepaidCount}</div>
+            <div className="text-center text-sm font-medium">{oweCount + oweRepaidCount}</div>
+          </div>
+          {/* Owed row */}
+          <div className="grid grid-cols-4 gap-2">
+            <div className="flex items-center">
+              <span className="w-3 h-3 rounded-full bg-[var(--color-accent)] mr-2" />
+              <span className="text-sm font-medium uppercase">Owed</span>
+            </div>
+            <div className="text-center text-sm font-medium">{owedCount}</div>
+            <div className="text-center text-sm text-[var(--color-text-muted)]">{owedRepaidCount}</div>
+            <div className="text-center text-sm font-medium">{owedCount + owedRepaidCount}</div>
           </div>
         </div>
       </div>

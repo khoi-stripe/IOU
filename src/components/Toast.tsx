@@ -56,12 +56,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       
       {/* Toast container */}
-      <div className="fixed bottom-20 left-0 right-0 flex flex-col-reverse items-center gap-2 z-50 px-4">
+      <div className="fixed bottom-20 left-0 right-0 flex items-center justify-center z-50 px-4">
         {toasts.map((toast, index) => (
           <SwipeableToast
             key={toast.id}
             toast={toast}
             index={index}
+            total={toasts.length}
             onDismiss={() => dismissToast(toast.id)}
           />
         ))}
@@ -73,10 +74,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 function SwipeableToast({
   toast,
   index,
+  total,
   onDismiss,
 }: {
   toast: Toast;
   index: number;
+  total: number;
   onDismiss: () => void;
 }) {
   const touchStartX = useRef(0);
@@ -127,8 +130,8 @@ function SwipeableToast({
     }
   };
 
-  // Stack offset for multiple toasts
-  const stackOffset = index * 4;
+  // Only show the top toast (last in array), others are hidden behind
+  const isTop = index === total - 1;
 
   return (
     <div
@@ -136,14 +139,17 @@ function SwipeableToast({
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      className={`bg-[var(--color-text)] text-[var(--color-bg)] px-4 py-2 text-sm font-medium rounded-full cursor-grab active:cursor-grabbing select-none ${
+      className={`absolute bg-[var(--color-text)] text-[var(--color-bg)] px-4 py-2 text-sm font-medium rounded-full cursor-grab active:cursor-grabbing select-none max-w-[280px] truncate ${
         dismissed ? "" : "animate-toast-in"
       }`}
       style={{
-        marginBottom: stackOffset,
         touchAction: "pan-y",
+        zIndex: index,
+        opacity: isTop ? 1 : 0.3,
+        transform: isTop ? "scale(1)" : `scale(${0.95 - (total - 1 - index) * 0.05})`,
       }}
     >
+      {total > 1 && <span className="opacity-60 mr-1">{index + 1}/{total}</span>}
       {toast.message}
     </div>
   );

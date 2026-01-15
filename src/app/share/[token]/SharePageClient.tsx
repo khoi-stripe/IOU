@@ -106,15 +106,15 @@ export default function SharePageClient({ token }: Props) {
         </p>
       </header>
 
-      <div className="p-6 border border-[var(--color-border)] space-y-4">
+      <div className="p-6 bg-[var(--color-bg-secondary)] rounded-[4px] space-y-4">
         <div className="text-center space-y-2">
-          <p className="text-lg">
+          <p style={{ fontSize: "16px" }}>
             <span className="font-bold">{fromName}</span> owes you
           </p>
           {iou.description ? (
-            <p className="text-2xl font-bold">{iou.description}</p>
+            <p style={{ fontSize: "16px" }} className="font-bold">{iou.description}</p>
           ) : (
-            <p className="text-lg text-[var(--color-text-muted)] italic">a favor</p>
+            <p style={{ fontSize: "16px" }} className="text-[var(--color-text-muted)] italic">a favor</p>
           )}
         </div>
 
@@ -122,17 +122,17 @@ export default function SharePageClient({ token }: Props) {
           <ImageWithLoader
             src={iou.photo_url}
             alt="IOU photo"
-            className="w-full h-48 border border-[var(--color-border)]"
+            className="w-full aspect-[4/3]"
           />
         )}
 
         <div className="flex justify-between items-center text-sm text-[var(--color-text-muted)]">
           <span>{new Date(iou.created_at).toLocaleDateString()}</span>
           <span
-            className={`px-2 py-1 ${
+            className={`px-2 py-1 rounded border ${
               iou.status === "pending"
-                ? "bg-[var(--color-bg-secondary)]"
-                : "bg-[var(--color-accent)] text-[var(--color-bg)]"
+                ? "border-[var(--color-border)]"
+                : "bg-[var(--color-accent)] text-[var(--color-bg)] border-transparent"
             }`}
           >
             {iou.status === "pending" ? "Outstanding" : "Repaid"}
@@ -146,7 +146,7 @@ export default function SharePageClient({ token }: Props) {
         </p>
         <Link
           href="/"
-          className="inline-block w-full py-2 bg-[var(--color-accent)] text-[var(--color-bg)] text-center hover:opacity-80 transition-opacity"
+          className="inline-block w-full py-3 bg-[var(--color-accent)] text-[var(--color-bg)] text-center rounded-full hover:opacity-80 transition-opacity font-medium"
         >
           Sign Up / Log In
         </Link>

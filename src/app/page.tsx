@@ -13,7 +13,6 @@ export default function Home() {
   const signupNameRef = useRef<HTMLInputElement>(null);
   const setPinRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState<Step>("phone");
-  const [prevStep, setPrevStep] = useState<Step>("phone");
   const [phone, setPhone] = useState("");
   const [name, setName] = useState("");
   const [pin, setPin] = useState("");
@@ -21,9 +20,8 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Focus appropriate input when step changes - must be very fast to keep keyboard open
+  // Focus appropriate input when step changes
   useEffect(() => {
-    // Small timeout to ensure DOM is updated, but fast enough to keep keyboard
     const timer = setTimeout(() => {
       if (step === "phone") {
         phoneInputRef.current?.focus();
@@ -34,7 +32,7 @@ export default function Home() {
       } else if (step === "setpin") {
         setPinRef.current?.focus();
       }
-    }, 1);
+    }, 50);
     return () => clearTimeout(timer);
   }, [step]);
 
@@ -56,7 +54,6 @@ export default function Home() {
 
       const { exists, hasPin } = await res.json();
 
-      setPrevStep("phone");
       if (!exists) {
         setStep("signup");
       } else if (!hasPin) {
@@ -114,7 +111,6 @@ export default function Home() {
   }
 
   function handleBack() {
-    setPrevStep(step);
     setStep("phone");
     setPin("");
     setConfirmPin("");
@@ -133,11 +129,8 @@ export default function Home() {
   const secondaryButtonClass =
     "flex-1 py-3 border border-[var(--color-border)] text-[var(--color-text)] rounded-full text-sm uppercase font-medium hover:border-[var(--color-accent)] transition-colors";
 
-  // Determine slide direction based on navigation
-  const goingForward = prevStep === "phone";
-
   return (
-    <div className="h-dvh flex flex-col px-4 overflow-hidden">
+    <div className="h-dvh flex flex-col px-4">
       {/* Header - fixed at top */}
       <header className="pt-8 pb-4 text-center shrink-0 bg-[var(--color-bg)]">
         <h1 className="text-2xl">
@@ -149,17 +142,9 @@ export default function Home() {
       </header>
 
       {/* Form area */}
-      <div className="flex-1 flex flex-col justify-end pb-8 relative">
+      <div className="flex-1 flex flex-col justify-end pb-8">
         {/* Phone step */}
-        <div
-          className={`transition-all duration-200 ease-out ${
-            step === "phone"
-              ? "opacity-100 translate-x-0"
-              : goingForward
-              ? "opacity-0 -translate-x-full absolute inset-x-4 bottom-8 pointer-events-none"
-              : "opacity-0 translate-x-full absolute inset-x-4 bottom-8 pointer-events-none"
-          }`}
-        >
+        {step === "phone" && (
           <form onSubmit={handlePhoneSubmit} className="space-y-6">
             <div>
               <label htmlFor="phone" className={labelClass}>
@@ -179,24 +164,16 @@ export default function Home() {
               />
             </div>
 
-            {error && step === "phone" && <p className="text-sm text-red-500">{error}</p>}
+            {error && <p className="text-sm text-red-500">{error}</p>}
 
             <button type="submit" disabled={loading} className={primaryButtonClass + " w-full"}>
               {loading ? "..." : "Continue"}
             </button>
           </form>
-        </div>
+        )}
 
         {/* Login step */}
-        <div
-          className={`transition-all duration-200 ease-out ${
-            step === "login"
-              ? "opacity-100 translate-x-0"
-              : goingForward
-              ? "opacity-0 translate-x-full absolute inset-x-4 bottom-8 pointer-events-none"
-              : "opacity-0 -translate-x-full absolute inset-x-4 bottom-8 pointer-events-none"
-          }`}
-        >
+        {step === "login" && (
           <form onSubmit={handleAuthSubmit} className="space-y-6">
             <div>
               <label htmlFor="loginPin" className={labelClass}>
@@ -217,7 +194,7 @@ export default function Home() {
               />
             </div>
 
-            {error && step === "login" && <p className="text-sm text-red-500">{error}</p>}
+            {error && <p className="text-sm text-red-500">{error}</p>}
 
             <div className="flex gap-3">
               <button type="button" onClick={handleBack} className={secondaryButtonClass}>
@@ -232,18 +209,10 @@ export default function Home() {
               </button>
             </div>
           </form>
-        </div>
+        )}
 
         {/* Signup step */}
-        <div
-          className={`transition-all duration-200 ease-out ${
-            step === "signup"
-              ? "opacity-100 translate-x-0"
-              : goingForward
-              ? "opacity-0 translate-x-full absolute inset-x-4 bottom-8 pointer-events-none"
-              : "opacity-0 -translate-x-full absolute inset-x-4 bottom-8 pointer-events-none"
-          }`}
-        >
+        {step === "signup" && (
           <form onSubmit={handleAuthSubmit} className="space-y-6">
             <div>
               <label htmlFor="name" className={labelClass}>
@@ -297,7 +266,7 @@ export default function Home() {
               />
             </div>
 
-            {error && step === "signup" && <p className="text-sm text-red-500">{error}</p>}
+            {error && <p className="text-sm text-red-500">{error}</p>}
 
             <div className="flex gap-3">
               <button type="button" onClick={handleBack} className={secondaryButtonClass}>
@@ -312,18 +281,10 @@ export default function Home() {
               </button>
             </div>
           </form>
-        </div>
+        )}
 
         {/* Set PIN step */}
-        <div
-          className={`transition-all duration-200 ease-out ${
-            step === "setpin"
-              ? "opacity-100 translate-x-0"
-              : goingForward
-              ? "opacity-0 translate-x-full absolute inset-x-4 bottom-8 pointer-events-none"
-              : "opacity-0 -translate-x-full absolute inset-x-4 bottom-8 pointer-events-none"
-          }`}
-        >
+        {step === "setpin" && (
           <form onSubmit={handleAuthSubmit} className="space-y-6">
             <div>
               <label htmlFor="setPin" className={labelClass}>
@@ -362,7 +323,7 @@ export default function Home() {
               />
             </div>
 
-            {error && step === "setpin" && <p className="text-sm text-red-500">{error}</p>}
+            {error && <p className="text-sm text-red-500">{error}</p>}
 
             <div className="flex gap-3">
               <button type="button" onClick={handleBack} className={secondaryButtonClass}>
@@ -377,7 +338,7 @@ export default function Home() {
               </button>
             </div>
           </form>
-        </div>
+        )}
       </div>
     </div>
   );

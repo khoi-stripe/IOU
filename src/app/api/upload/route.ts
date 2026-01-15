@@ -70,6 +70,25 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ url });
   } catch (error) {
     console.error("Upload error:", error);
+    
+    // Return more specific error messages for debugging
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    
+    // Check for specific R2/credential errors
+    if (errorMessage.includes("Missing R2 environment")) {
+      return NextResponse.json(
+        { error: errorMessage },
+        { status: 500 }
+      );
+    }
+    
+    if (errorMessage.includes("credential") || errorMessage.includes("Credential")) {
+      return NextResponse.json(
+        { error: `R2 configuration error: ${errorMessage}` },
+        { status: 500 }
+      );
+    }
+    
     return NextResponse.json(
       { error: "Failed to upload file" },
       { status: 500 }

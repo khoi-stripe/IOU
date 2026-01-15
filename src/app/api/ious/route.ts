@@ -55,8 +55,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Normalize phone number if provided
-    const normalizedPhone = toPhone ? toPhone.replace(/\D/g, "") : null;
+    // Normalize phone number if provided (must have at least some digits)
+    const digits = toPhone ? toPhone.replace(/\D/g, "") : "";
+    const normalizedPhone = digits.length > 0 ? digits : null;
 
     const iou = await createIOU(
       userId,
@@ -66,7 +67,8 @@ export async function POST(request: NextRequest) {
     );
 
     return NextResponse.json({ iou: enrichIOU(iou) });
-  } catch {
+  } catch (error) {
+    console.error("Create IOU error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

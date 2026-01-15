@@ -216,3 +216,58 @@ button {
   animation-delay: 0.15s;
 }
 
+/* Iris expand animation for repaid confirmation */
+@keyframes iris-expand {
+  0% {
+    width: 0;
+    height: 0;
+  }
+  85% {
+    width: 210%;
+    height: 420%;
+  }
+  100% {
+    width: 200%;
+    height: 400%;
+  }
+}
+
+.animate-iris-expand {
+  animation: iris-expand 0.7s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+}
+
+/* Button exit animation */
+@keyframes button-exit {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+
+.animate-button-exit {
+  animation: button-exit 0.3s ease-out forwards;
+}
+
+/* Button space collapse animation */
+@keyframes button-space-collapse {
+  0% {
+    max-height: 50px;
+    opacity: 1;
+    margin-top: 12px;
+  }
+  100% {
+    max-height: 0;
+    opacity: 0;
+    margin-top: 0;
+  }
+}
+
+.animate-button-collapse {
+  overflow: hidden;
+  animation: button-space-collapse 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+

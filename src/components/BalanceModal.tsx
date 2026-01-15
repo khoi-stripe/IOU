@@ -158,7 +158,7 @@ export default function BalanceModal({ oweCount, owedCount, oweRepaidCount, owed
       </div>
 
         {/* Legend */}
-        <div className={`pb-8 shrink-0 px-4 transition-opacity duration-300 ${isClosing ? "opacity-0" : ""}`}>
+        <div className={`pb-14 shrink-0 px-4 transition-opacity duration-300 ${isClosing ? "opacity-0" : ""}`}>
           {/* Header row */}
           <div className="grid grid-cols-4 gap-2 mb-2 text-xs text-[var(--color-text-muted)] uppercase">
             <div></div>

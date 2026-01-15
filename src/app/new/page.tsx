@@ -119,12 +119,15 @@ export default function NewIOU() {
         body: formData,
       });
 
-      if (!res.ok) throw new Error("Upload failed");
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.error || "Upload failed");
+      }
 
-      const { url } = await res.json();
-      setPhotoUrl(url);
-    } catch {
-      setError("Failed to upload photo");
+      setPhotoUrl(data.url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to upload photo");
     } finally {
       setUploading(false);
     }
@@ -139,14 +142,31 @@ export default function NewIOU() {
       return;
     }
 
+    // Validate recipient field if something was entered
+    if (searchValue && !toPhone) {
+      // User typed something but didn't select a contact
+      // Check if it looks like a phone number (has digits)
+      const digits = searchValue.replace(/\D/g, "");
+      if (digits.length < 10) {
+        setError("Please enter a valid phone number or select a contact");
+        return;
+      }
+      // If it has enough digits, use it as a phone number
+      setToPhone(digits);
+    }
+
     setLoading(true);
+
+    // Use the validated phone number
+    const phoneToSubmit = toPhone || (searchValue ? searchValue.replace(/\D/g, "") : null);
+    const validPhone = phoneToSubmit && phoneToSubmit.length >= 10 ? phoneToSubmit : null;
 
     try {
       const res = await fetch("/api/ious", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          toPhone: toPhone || null,
+          toPhone: validPhone,
           description: description || null,
           photoUrl,
         }),

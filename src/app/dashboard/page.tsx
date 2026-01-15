@@ -58,6 +58,7 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<Tab>("owe");
   const [filter, setFilter] = useState<Filter>("all");
   const [showBalance, setShowBalance] = useState(false);
+  const [collapsingId, setCollapsingId] = useState<string | null>(null);
   const notificationsShownRef = useRef(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -171,13 +172,19 @@ export default function Dashboard() {
         body: JSON.stringify({ action: "repaid" }),
       });
       if (res.ok) {
-        // Update locally instead of refetching to preserve pagination state
-        setOwed(prev => prev.map(iou => 
-          iou.id === id ? { ...iou, status: "repaid" as const, repaid_at: new Date().toISOString() } : iou
-        ));
-        setOwing(prev => prev.map(iou => 
-          iou.id === id ? { ...iou, status: "repaid" as const, repaid_at: new Date().toISOString() } : iou
-        ));
+        // Trigger collapse animation
+        setCollapsingId(id);
+        
+        // Update locally after animation completes
+        setTimeout(() => {
+          setOwed(prev => prev.map(iou => 
+            iou.id === id ? { ...iou, status: "repaid" as const, repaid_at: new Date().toISOString() } : iou
+          ));
+          setOwing(prev => prev.map(iou => 
+            iou.id === id ? { ...iou, status: "repaid" as const, repaid_at: new Date().toISOString() } : iou
+          ));
+          setCollapsingId(null);
+        }, 400);
       }
     } catch (err) {
       console.error(err);
@@ -329,6 +336,7 @@ export default function Dashboard() {
                     key={iou.id}
                     iou={iou}
                     isOwe={activeTab === "owe"}
+                    isCollapsing={collapsingId === iou.id}
                     onMarkRepaid={() => handleMarkRepaid(iou.id)}
                     onShare={() => handleShare(iou)}
                   />
@@ -358,11 +366,13 @@ export default function Dashboard() {
 function IOUCard({
   iou,
   isOwe,
+  isCollapsing,
   onMarkRepaid,
   onShare,
 }: {
   iou: IOU;
   isOwe: boolean;
+  isCollapsing?: boolean;
   onMarkRepaid: () => void;
   onShare: () => void;
 }) {
@@ -438,7 +448,9 @@ function IOUCard({
 
       {/* Mark Repaid button */}
       {isPending && (
-        <HoldToConfirmButton onConfirm={onMarkRepaid} label="Hold to Mark Repaid" />
+        <div className={isCollapsing ? "animate-button-collapse" : ""}>
+          <HoldToConfirmButton onConfirm={onMarkRepaid} label="Hold to Mark Repaid" duration={1200} />
+        </div>
       )}
     </div>
   );
@@ -454,6 +466,8 @@ function HoldToConfirmButton({
   duration?: number;
 }) {
   const [progress, setProgress] = useState(0);
+  const [confirmed, setConfirmed] = useState(false);
+  const [exiting, setExiting] = useState(false);
   const holdingRef = useRef(false);
   const startTimeRef = useRef(0);
   const rafRef = useRef<number | null>(null);
@@ -472,7 +486,14 @@ function HoldToConfirmButton({
     if (newProgress >= 100 && !confirmedRef.current) {
       confirmedRef.current = true;
       holdingRef.current = false;
-      onConfirm();
+      setConfirmed(true);
+      // Show confirmation, then exit animation, then callback
+      setTimeout(() => {
+        setExiting(true);
+        setTimeout(() => {
+          onConfirm();
+        }, 300);
+      }, 600);
       return;
     }
     
@@ -543,34 +564,63 @@ function HoldToConfirmButton({
 
   return (
     <button
-      onMouseDown={startHold}
-      onMouseUp={stopHold}
-      onMouseLeave={stopHold}
-      onTouchStart={startHold}
-      onTouchEnd={stopHold}
-      onTouchCancel={stopHold}
-      className="relative w-full py-2 text-xs font-bold uppercase rounded-full overflow-hidden border border-[var(--color-accent)] select-none touch-none"
+      onMouseDown={!confirmed ? startHold : undefined}
+      onMouseUp={!confirmed ? stopHold : undefined}
+      onMouseLeave={!confirmed ? stopHold : undefined}
+      onTouchStart={!confirmed ? startHold : undefined}
+      onTouchEnd={!confirmed ? stopHold : undefined}
+      onTouchCancel={!confirmed ? stopHold : undefined}
+      className={`relative w-full py-2 text-xs font-bold uppercase rounded-full overflow-hidden border border-[var(--color-accent)] select-none touch-none ${
+        exiting ? "animate-button-exit" : ""
+      }`}
     >
       {/* Base label (accent text) */}
-      <span className="text-[var(--color-accent)]">
+      <span className={`transition-opacity duration-200 ${confirmed ? "opacity-0" : "text-[var(--color-accent)]"}`}>
         {label}
       </span>
       
       {/* Fill with rounded right edge */}
       <div 
-        className="absolute top-0 left-0 bottom-0 bg-[var(--color-accent)] rounded-full"
-        style={{ width: `${progress}%` }}
+        className="absolute top-0 left-0 bottom-0 bg-[var(--color-accent)] rounded-full transition-opacity duration-200"
+        style={{ 
+          width: confirmed ? "100%" : `${progress}%`,
+          opacity: confirmed ? 0 : 1,
+        }}
       />
       
       {/* Inverted text layer, clipped by progress */}
       <div
-        className="absolute inset-0 flex items-center justify-center overflow-hidden"
-        style={{ clipPath: `inset(0 ${100 - progress}% 0 0)` }}
+        className="absolute inset-0 flex items-center justify-center overflow-hidden transition-opacity duration-200"
+        style={{ 
+          clipPath: `inset(0 ${100 - progress}% 0 0)`,
+          opacity: confirmed ? 0 : 1,
+        }}
       >
         <span className="text-[var(--color-bg)]">
           {label}
         </span>
       </div>
+      
+      {/* Confirmed state - black background */}
+      {confirmed && (
+        <div className="absolute inset-0 bg-[var(--color-accent)]" />
+      )}
+      
+      {/* Iris wipe - white circle expanding from center */}
+      {confirmed && (
+        <div 
+          className="absolute inset-0 flex items-center justify-center"
+        >
+          <div className="absolute bg-[var(--color-bg)] rounded-full animate-iris-expand" />
+        </div>
+      )}
+      
+      {/* Confirmed text - revealed by iris */}
+      {confirmed && (
+        <span className="absolute inset-0 flex items-center justify-center text-[var(--color-accent)] z-10">
+          Repaid ✓
+        </span>
+      )}
     </button>
   );
 }

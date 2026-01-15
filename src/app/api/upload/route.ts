@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { uploadToR2 } from "@/lib/r2";
 import { getAuthenticatedUserId } from "@/lib/session";
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 // Helper to determine content type from filename or file type
 function getContentType(file: File): string {
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
     // File size check
     if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json(
-        { error: "File too large. Maximum size is 5MB." },
+        { error: "File too large. Maximum size is 10MB." },
         { status: 400 }
       );
     }

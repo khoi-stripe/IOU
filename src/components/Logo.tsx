@@ -1,4 +1,4 @@
-export default function Logo({ className = "", grayscale = false }: { className?: string; grayscale?: boolean }) {
+export default function Logo({ className = "", grayscale = true }: { className?: string; grayscale?: boolean }) {
   return (
     <span className={`inline-flex ${grayscale ? "grayscale" : ""} ${className}`} style={{ letterSpacing: "0.2em" }}>
       <span className="animate-logo-1">👁️</span>

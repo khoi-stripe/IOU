@@ -137,7 +137,7 @@ export default function Dashboard() {
     <div className="flex flex-col h-full pt-4 pb-16">
       {/* Header */}
       <header className="flex items-center justify-between px-4 mb-4 shrink-0">
-        <h1 className="text-lg"><Logo grayscale /></h1>
+        <h1 className="text-lg"><Logo /></h1>
         <button 
           onClick={handleLogout}
           className="text-sm font-medium hover:underline underline-offset-4"

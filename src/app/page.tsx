@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Logo from "@/components/Logo";
 
@@ -8,6 +8,7 @@ type Step = "phone" | "signup" | "login" | "setpin";
 
 export default function Home() {
   const router = useRouter();
+  const pinInputRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState<Step>("phone");
   const [phone, setPhone] = useState("");
   const [name, setName] = useState("");
@@ -15,6 +16,14 @@ export default function Home() {
   const [confirmPin, setConfirmPin] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Focus PIN input when transitioning to login or setpin step
+  useEffect(() => {
+    if ((step === "login" || step === "setpin") && pinInputRef.current) {
+      // Small delay to ensure the input is rendered
+      setTimeout(() => pinInputRef.current?.focus(), 50);
+    }
+  }, [step]);
 
   async function handlePhoneSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -111,9 +120,9 @@ export default function Home() {
     "flex-1 py-3 border border-[var(--color-border)] text-[var(--color-text)] rounded-full text-sm uppercase font-medium hover:border-[var(--color-accent)] transition-colors";
 
   return (
-    <div className="h-dvh flex flex-col px-2">
-      {/* Header */}
-      <header className="pt-8 pb-4 text-center shrink-0">
+    <div className="h-dvh flex flex-col px-2 overflow-hidden">
+      {/* Header - fixed at top */}
+      <header className="pt-8 pb-4 text-center shrink-0 bg-[var(--color-bg)]">
         <h1 className="text-2xl">
           <Logo />
         </h1>
@@ -122,11 +131,13 @@ export default function Home() {
         </p>
       </header>
 
-      {/* Spacer - pushes form to bottom */}
-      <div className="flex-1 min-h-0" />
+      {/* Scrollable content area */}
+      <div className="flex-1 min-h-0 flex flex-col overflow-y-auto">
+        {/* Spacer - pushes form to bottom */}
+        <div className="flex-1" />
 
-      {/* Form content */}
-      <div className="shrink-0 pb-8">
+        {/* Form content */}
+        <div className="shrink-0 pb-8">
         {step === "phone" && (
           <form onSubmit={handlePhoneSubmit} className="space-y-6">
             <div>
@@ -233,6 +244,7 @@ export default function Home() {
                 PIN
               </label>
               <input
+                ref={pinInputRef}
                 id="pin"
                 type="password"
                 inputMode="numeric"
@@ -242,7 +254,6 @@ export default function Home() {
                 onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
                 placeholder="••••"
                 required
-                autoFocus
                 className={pinInputClass}
               />
             </div>
@@ -273,6 +284,7 @@ export default function Home() {
                 Create a 4-Digit PIN
               </label>
               <input
+                ref={pinInputRef}
                 id="pin"
                 type="password"
                 inputMode="numeric"
@@ -282,7 +294,6 @@ export default function Home() {
                 onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
                 placeholder="••••"
                 required
-                autoFocus
                 className={pinInputClass}
               />
             </div>
@@ -321,6 +332,7 @@ export default function Home() {
             </div>
           </form>
         )}
+        </div>
       </div>
     </div>
   );

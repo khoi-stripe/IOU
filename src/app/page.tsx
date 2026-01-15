@@ -8,7 +8,9 @@ type Step = "phone" | "signup" | "login" | "setpin";
 
 export default function Home() {
   const router = useRouter();
+  const phoneInputRef = useRef<HTMLInputElement>(null);
   const pinInputRef = useRef<HTMLInputElement>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState<Step>("phone");
   const [phone, setPhone] = useState("");
   const [name, setName] = useState("");
@@ -17,12 +19,19 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Focus PIN input when transitioning to login or setpin step
+  // Focus appropriate input when step changes
   useEffect(() => {
-    if ((step === "login" || step === "setpin") && pinInputRef.current) {
-      // Small delay to ensure the input is rendered
-      setTimeout(() => pinInputRef.current?.focus(), 50);
-    }
+    // Small delay to ensure input is rendered and keyboard stays up
+    const timer = setTimeout(() => {
+      if (step === "phone") {
+        phoneInputRef.current?.focus();
+      } else if (step === "login" || step === "setpin") {
+        pinInputRef.current?.focus();
+      } else if (step === "signup") {
+        nameInputRef.current?.focus();
+      }
+    }, 10);
+    return () => clearTimeout(timer);
   }, [step]);
 
   async function handlePhoneSubmit(e: React.FormEvent) {
@@ -131,13 +140,9 @@ export default function Home() {
         </p>
       </header>
 
-      {/* Scrollable content area */}
-      <div className="flex-1 min-h-0 flex flex-col overflow-y-auto">
-        {/* Spacer - pushes form to bottom */}
-        <div className="flex-1" />
-
-        {/* Form content */}
-        <div className="shrink-0 pb-8">
+      {/* Form area - fixed position */}
+      <div className="flex-1 flex flex-col justify-end pb-8">
+        {/* Phone step */}
         {step === "phone" && (
           <form onSubmit={handlePhoneSubmit} className="space-y-6">
             <div>
@@ -145,8 +150,10 @@ export default function Home() {
                 Phone Number
               </label>
               <input
+                ref={phoneInputRef}
                 id="phone"
                 type="tel"
+                inputMode="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="555-123-4567"
@@ -164,81 +171,23 @@ export default function Home() {
           </form>
         )}
 
-        {step === "signup" && (
-          <form onSubmit={handleAuthSubmit} className="space-y-6">
-            <h2 className="text-lg font-medium">Create your account.</h2>
-
-            <div>
-              <label htmlFor="name" className={labelClass}>
-                Your Name
-              </label>
-              <input
-                id="name"
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Bruce"
-                required
-                autoFocus
-                className={inputClass}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="pin" className={labelClass}>
-                Create a 4-Digit PIN
-              </label>
-              <input
-                id="pin"
-                type="password"
-                inputMode="numeric"
-                pattern="\d{4}"
-                maxLength={4}
-                value={pin}
-                onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                placeholder="••••"
-                required
-                className={pinInputClass}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="confirmPin" className={labelClass}>
-                Confirm PIN
-              </label>
-              <input
-                id="confirmPin"
-                type="password"
-                inputMode="numeric"
-                pattern="\d{4}"
-                maxLength={4}
-                value={confirmPin}
-                onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                placeholder="••••"
-                required
-                className={pinInputClass}
-              />
-            </div>
-
-            {error && <p className="text-sm text-red-500">{error}</p>}
-
-            <div className="flex gap-3">
-              <button type="button" onClick={handleBack} className={secondaryButtonClass}>
-                Back
-              </button>
-              <button
-                type="submit"
-                disabled={loading || pin.length !== 4 || confirmPin.length !== 4}
-                className={primaryButtonClass}
-              >
-                {loading ? "..." : "Create Account"}
-              </button>
-            </div>
-          </form>
-        )}
-
+        {/* Login step - returning user with PIN */}
         {step === "login" && (
           <form onSubmit={handleAuthSubmit} className="space-y-6">
+            {/* Show confirmed phone */}
+            <div>
+              <label className={labelClass}>Phone Number</label>
+              <button
+                type="button"
+                onClick={handleBack}
+                className="w-full px-4 py-3 border border-[var(--color-border)] bg-[var(--color-bg-secondary)] text-[var(--color-text)] rounded-lg text-left flex justify-between items-center"
+              >
+                <span>{phone}</span>
+                <span className="text-xs text-[var(--color-text-muted)]">Edit</span>
+              </button>
+            </div>
+
+            {/* PIN input in same position as phone was */}
             <div>
               <label htmlFor="pin" className={labelClass}>
                 PIN
@@ -260,24 +209,111 @@ export default function Home() {
 
             {error && <p className="text-sm text-red-500">{error}</p>}
 
-            <div className="flex gap-3">
-              <button type="button" onClick={handleBack} className={secondaryButtonClass}>
-                Back
-              </button>
-              <button
-                type="submit"
-                disabled={loading || pin.length !== 4}
-                className={primaryButtonClass}
-              >
-                {loading ? "..." : "Log In"}
-              </button>
-            </div>
+            <button
+              type="submit"
+              disabled={loading || pin.length !== 4}
+              className={primaryButtonClass + " w-full"}
+            >
+              {loading ? "..." : "Log In"}
+            </button>
           </form>
         )}
 
+        {/* Signup step - new user */}
+        {step === "signup" && (
+          <form onSubmit={handleAuthSubmit} className="space-y-6">
+            {/* Show confirmed phone */}
+            <div>
+              <label className={labelClass}>Phone Number</label>
+              <button
+                type="button"
+                onClick={handleBack}
+                className="w-full px-4 py-3 border border-[var(--color-border)] bg-[var(--color-bg-secondary)] text-[var(--color-text)] rounded-lg text-left flex justify-between items-center"
+              >
+                <span>{phone}</span>
+                <span className="text-xs text-[var(--color-text-muted)]">Edit</span>
+              </button>
+            </div>
+
+            <div>
+              <label htmlFor="name" className={labelClass}>
+                Your Name
+              </label>
+              <input
+                ref={nameInputRef}
+                id="name"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Bruce"
+                required
+                className={inputClass}
+              />
+            </div>
+
+            <div>
+              <label htmlFor="pin" className={labelClass}>
+                Create a 4-Digit PIN
+              </label>
+              <input
+                id="pin"
+                type="password"
+                inputMode="numeric"
+                pattern="\d{4}"
+                maxLength={4}
+                value={pin}
+                onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                placeholder="••••"
+                required
+                className={pinInputClass}
+              />
+            </div>
+
+            <div>
+              <label htmlFor="confirmPin" className={labelClass}>
+                Confirm PIN
+              </label>
+              <input
+                id="confirmPin"
+                type="password"
+                inputMode="numeric"
+                pattern="\d{4}"
+                maxLength={4}
+                value={confirmPin}
+                onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                placeholder="••••"
+                required
+                className={pinInputClass}
+              />
+            </div>
+
+            {error && <p className="text-sm text-red-500">{error}</p>}
+
+            <button
+              type="submit"
+              disabled={loading || pin.length !== 4 || confirmPin.length !== 4 || !name}
+              className={primaryButtonClass + " w-full"}
+            >
+              {loading ? "..." : "Create Account"}
+            </button>
+          </form>
+        )}
+
+        {/* Set PIN step - existing user without PIN */}
         {step === "setpin" && (
           <form onSubmit={handleAuthSubmit} className="space-y-6">
-            <h2 className="text-lg font-medium">Create your PIN.</h2>
+            {/* Show confirmed phone */}
+            <div>
+              <label className={labelClass}>Phone Number</label>
+              <button
+                type="button"
+                onClick={handleBack}
+                className="w-full px-4 py-3 border border-[var(--color-border)] bg-[var(--color-bg-secondary)] text-[var(--color-text)] rounded-lg text-left flex justify-between items-center"
+              >
+                <span>{phone}</span>
+                <span className="text-xs text-[var(--color-text-muted)]">Edit</span>
+              </button>
+            </div>
 
             <div>
               <label htmlFor="pin" className={labelClass}>
@@ -318,21 +354,15 @@ export default function Home() {
 
             {error && <p className="text-sm text-red-500">{error}</p>}
 
-            <div className="flex gap-3">
-              <button type="button" onClick={handleBack} className={secondaryButtonClass}>
-                Back
-              </button>
-              <button
-                type="submit"
-                disabled={loading || pin.length !== 4 || confirmPin.length !== 4}
-                className={primaryButtonClass}
-              >
-                {loading ? "..." : "Log In"}
-              </button>
-            </div>
+            <button
+              type="submit"
+              disabled={loading || pin.length !== 4 || confirmPin.length !== 4}
+              className={primaryButtonClass + " w-full"}
+            >
+              {loading ? "..." : "Set PIN"}
+            </button>
           </form>
         )}
-        </div>
       </div>
     </div>
   );

@@ -7,6 +7,7 @@ import Loader from "@/components/Loader";
 import Logo from "@/components/Logo";
 import { useToast } from "@/components/Toast";
 import ImageWithLoader from "@/components/ImageWithLoader";
+import BalanceModal from "@/components/BalanceModal";
 
 interface User {
   id: string;
@@ -41,6 +42,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>("owe");
   const [filter, setFilter] = useState<Filter>("all");
+  const [showBalance, setShowBalance] = useState(false);
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -125,9 +127,20 @@ export default function Dashboard() {
 
   return (
     <div className="flex flex-col h-full pt-4 pb-16">
+      {/* Balance Modal */}
+      {showBalance && (
+        <BalanceModal
+          oweCount={owed.length}
+          owedCount={owing.length}
+          onClose={() => setShowBalance(false)}
+        />
+      )}
+
       {/* Header */}
       <header className="flex items-center justify-between px-4 mb-4 shrink-0">
-        <h1 className="text-lg"><Logo /></h1>
+        <button onClick={() => setShowBalance(true)} className="text-lg hover:opacity-60 transition-opacity">
+          <Logo />
+        </button>
         <button 
           onClick={handleLogout}
           className="text-sm font-medium hover:underline underline-offset-4"

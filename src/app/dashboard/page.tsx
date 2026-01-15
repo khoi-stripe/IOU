@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, memo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Loader from "@/components/Loader";
@@ -363,7 +363,7 @@ export default function Dashboard() {
   );
 }
 
-function IOUCard({
+const IOUCard = memo(function IOUCard({
   iou,
   isOwe,
   isCollapsing,
@@ -454,7 +454,7 @@ function IOUCard({
       )}
     </div>
   );
-}
+});
 
 function HoldToConfirmButton({
   onConfirm,

@@ -72,6 +72,7 @@ export default function ImageWithLoader({ src, alt, className = "" }: ImageWithL
         <img
           src={src}
           alt={alt}
+          loading="lazy"
           onLoad={() => setLoaded(true)}
           className={`w-full h-full object-cover transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
         />
@@ -95,6 +96,7 @@ export default function ImageWithLoader({ src, alt, className = "" }: ImageWithL
           <img
             src={src}
             alt={alt}
+            loading="eager"
             className="max-w-full max-h-full object-contain"
             onClick={(e) => e.stopPropagation()}
           />

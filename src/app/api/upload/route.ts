@@ -1,30 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { uploadToR2 } from "@/lib/r2";
 import { getAuthenticatedUserId } from "@/lib/session";
+import sharp from "sharp";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-
-// Helper to determine content type from filename or file type
-function getContentType(file: File): string {
-  // If file.type is set and valid, use it
-  if (file.type && file.type.startsWith("image/")) {
-    return file.type;
-  }
-
-  // Fallback: determine from extension
-  const ext = file.name.split(".").pop()?.toLowerCase();
-  const mimeTypes: Record<string, string> = {
-    jpg: "image/jpeg",
-    jpeg: "image/jpeg",
-    png: "image/png",
-    gif: "image/gif",
-    webp: "image/webp",
-    heic: "image/heic",
-    heif: "image/heif",
-  };
-
-  return mimeTypes[ext || ""] || "image/jpeg";
-}
+const MAX_DIMENSION = 1200; // Max width or height
+const WEBP_QUALITY = 80;
 
 // Helper to check if file is an image
 function isImageFile(file: File): boolean {
@@ -84,15 +65,21 @@ export async function POST(request: NextRequest) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Generate safe filename
-    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-    const safeFilename = `${Math.random().toString(36).substring(2, 8)}.${ext}`;
+    // Optimize image: resize and convert to WebP
+    const optimizedBuffer = await sharp(buffer)
+      .rotate() // Auto-rotate based on EXIF orientation
+      .resize(MAX_DIMENSION, MAX_DIMENSION, {
+        fit: "inside",
+        withoutEnlargement: true, // Don't upscale small images
+      })
+      .webp({ quality: WEBP_QUALITY })
+      .toBuffer();
 
-    // Get content type (handles iOS Safari's empty file.type)
-    const contentType = getContentType(file);
+    // Generate safe filename with .webp extension
+    const safeFilename = `${Math.random().toString(36).substring(2, 8)}.webp`;
 
-    // Upload to R2
-    const url = await uploadToR2(buffer, safeFilename, contentType);
+    // Upload optimized WebP to R2
+    const url = await uploadToR2(optimizedBuffer, safeFilename, "image/webp");
 
     return NextResponse.json({ url });
   } catch (error) {

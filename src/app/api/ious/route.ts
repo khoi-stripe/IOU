@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { createIOU, getIOUsByUser, getUserById, enrichIOU } from "@/lib/db";
+import { getAuthenticatedUserId } from "@/lib/session";
 
 export async function GET() {
   try {
-    const cookieStore = await cookies();
-    const userId = cookieStore.get("userId")?.value;
+    const userId = await getAuthenticatedUserId();
 
     if (!userId) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
@@ -33,8 +32,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const userId = cookieStore.get("userId")?.value;
+    const userId = await getAuthenticatedUserId();
 
     if (!userId) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
@@ -53,7 +51,12 @@ export async function POST(request: NextRequest) {
     // Normalize phone number if provided
     const normalizedPhone = toPhone ? toPhone.replace(/\D/g, "") : null;
 
-    const iou = await createIOU(userId, normalizedPhone, description || null, photoUrl);
+    const iou = await createIOU(
+      userId,
+      normalizedPhone,
+      description || null,
+      photoUrl
+    );
 
     return NextResponse.json({ iou: enrichIOU(iou) });
   } catch {
@@ -63,4 +66,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

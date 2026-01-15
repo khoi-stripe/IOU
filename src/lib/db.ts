@@ -472,12 +472,14 @@ export async function getUnacknowledgedNotifications(userId: string): Promise<No
   return (data || []) as Notification[];
 }
 
-export async function acknowledgeNotification(id: string): Promise<void> {
+export async function acknowledgeNotification(id: string, userId: string): Promise<void> {
   const supabase = getSupabase();
+  // Only acknowledge if the notification belongs to this user (prevents IDOR)
   await supabase
     .from("iou_notifications")
     .update({ acknowledged_at: new Date().toISOString() })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("user_id", userId);
 }
 
 export async function acknowledgeAllNotifications(userId: string): Promise<void> {

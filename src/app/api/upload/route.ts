@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { uploadToR2 } from "@/lib/r2";
+import { getAuthenticatedUserId } from "@/lib/session";
+
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 // Helper to determine content type from filename or file type
 function getContentType(file: File): string {
@@ -7,7 +10,7 @@ function getContentType(file: File): string {
   if (file.type && file.type.startsWith("image/")) {
     return file.type;
   }
-  
+
   // Fallback: determine from extension
   const ext = file.name.split(".").pop()?.toLowerCase();
   const mimeTypes: Record<string, string> = {
@@ -19,7 +22,7 @@ function getContentType(file: File): string {
     heic: "image/heic",
     heif: "image/heif",
   };
-  
+
   return mimeTypes[ext || ""] || "image/jpeg";
 }
 
@@ -29,20 +32,44 @@ function isImageFile(file: File): boolean {
   if (file.type && file.type.startsWith("image/")) {
     return true;
   }
-  
+
   // Fallback: check extension (iOS Safari sometimes has empty file.type)
   const ext = file.name.split(".").pop()?.toLowerCase();
-  const imageExtensions = ["jpg", "jpeg", "png", "gif", "webp", "heic", "heif", "bmp", "tiff"];
+  const imageExtensions = [
+    "jpg",
+    "jpeg",
+    "png",
+    "gif",
+    "webp",
+    "heic",
+    "heif",
+    "bmp",
+    "tiff",
+  ];
   return imageExtensions.includes(ext || "");
 }
 
 export async function POST(request: NextRequest) {
   try {
+    // Authentication check
+    const userId = await getAuthenticatedUserId();
+    if (!userId) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
+    }
+
+    // File size check
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        { error: "File too large. Maximum size is 5MB." },
+        { status: 400 }
+      );
     }
 
     // Validate file type (more permissive for iOS Safari)
@@ -70,25 +97,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ url });
   } catch (error) {
     console.error("Upload error:", error);
-    
-    // Return more specific error messages for debugging
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    
-    // Check for specific R2/credential errors
-    if (errorMessage.includes("Missing R2 environment")) {
-      return NextResponse.json(
-        { error: errorMessage },
-        { status: 500 }
-      );
-    }
-    
-    if (errorMessage.includes("credential") || errorMessage.includes("Credential")) {
-      return NextResponse.json(
-        { error: `R2 configuration error: ${errorMessage}` },
-        { status: 500 }
-      );
-    }
-    
+
+    // Return generic error message (don't expose internal details)
     return NextResponse.json(
       { error: "Failed to upload file" },
       { status: 500 }

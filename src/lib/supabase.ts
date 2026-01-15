@@ -5,12 +5,13 @@ let supabaseInstance: SupabaseClient | null = null;
 export function getSupabase(): SupabaseClient {
   if (!supabaseInstance) {
     const supabaseUrl = process.env.SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_ANON_KEY;
+    // Use service role key for server-side operations (bypasses RLS)
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     console.log("[SUPABASE] URL exists:", !!supabaseUrl, "KEY exists:", !!supabaseKey);
 
     if (!supabaseUrl || !supabaseKey) {
-      throw new Error("Missing SUPABASE_URL or SUPABASE_ANON_KEY environment variables");
+      throw new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables");
     }
 
     supabaseInstance = createClient(supabaseUrl, supabaseKey);

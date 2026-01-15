@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { acknowledgeNotification, acknowledgeAllNotifications, getUserById } from "@/lib/db";
+import {
+  acknowledgeNotification,
+  acknowledgeAllNotifications,
+  getUserById,
+} from "@/lib/db";
+import { getAuthenticatedUserId } from "@/lib/session";
 
 export async function POST(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const userId = cookieStore.get("userId")?.value;
+    const userId = await getAuthenticatedUserId();
 
     if (!userId) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
@@ -22,8 +25,8 @@ export async function POST(request: NextRequest) {
       // Acknowledge all notifications for this user
       await acknowledgeAllNotifications(userId);
     } else if (id) {
-      // Acknowledge single notification
-      await acknowledgeNotification(id);
+      // Acknowledge single notification - pass userId for ownership check
+      await acknowledgeNotification(id, userId);
     } else {
       return NextResponse.json(
         { error: "Must provide 'id' or 'all: true'" },
@@ -39,4 +42,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

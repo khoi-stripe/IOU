@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { getUnacknowledgedNotifications, getUserById } from "@/lib/db";
+import { getAuthenticatedUserId } from "@/lib/session";
 
 export async function GET() {
   try {
-    const cookieStore = await cookies();
-    const userId = cookieStore.get("userId")?.value;
+    const userId = await getAuthenticatedUserId();
 
     if (!userId) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
@@ -26,4 +25,3 @@ export async function GET() {
     );
   }
 }
-

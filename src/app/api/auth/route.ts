@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createUser, verifyUser, setUserPin } from "@/lib/db";
-import { cookies } from "next/headers";
+import { setSessionCookie } from "@/lib/session";
+import { checkAuthRateLimit } from "@/lib/ratelimit";
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,6 +24,22 @@ export async function POST(request: NextRequest) {
     // Normalize phone number (remove non-digits)
     const normalizedPhone = phone.replace(/\D/g, "");
 
+    // Rate limit check for login attempts (brute-force protection)
+    const rateLimitResult = await checkAuthRateLimit(normalizedPhone);
+    if (!rateLimitResult.success) {
+      const resetDate = new Date(rateLimitResult.reset);
+      const minutesUntilReset = Math.ceil(
+        (rateLimitResult.reset - Date.now()) / 1000 / 60
+      );
+      return NextResponse.json(
+        {
+          error: `Too many attempts. Try again in ${minutesUntilReset} minute${minutesUntilReset === 1 ? "" : "s"}.`,
+          retryAfter: resetDate.toISOString(),
+        },
+        { status: 429 }
+      );
+    }
+
     let user;
 
     if (action === "signup") {
@@ -37,7 +54,10 @@ export async function POST(request: NextRequest) {
       try {
         user = await createUser(normalizedPhone, displayName, pin);
       } catch (err) {
-        if (err instanceof Error && err.message === "Phone number already registered") {
+        if (
+          err instanceof Error &&
+          err.message === "Phone number already registered"
+        ) {
           return NextResponse.json(
             { error: "Phone number already registered" },
             { status: 409 }
@@ -65,14 +85,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Set a simple cookie with user ID
-    const cookieStore = await cookies();
-    cookieStore.set("userId", user.id, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 30, // 30 days
-    });
+    // Set a secure signed JWT session cookie
+    await setSessionCookie(user.id);
 
     return NextResponse.json({ user });
   } catch (error) {

@@ -87,21 +87,10 @@ export default function Dashboard() {
     }
   }
 
-  async function handleShare(iou: IOU, isOwe: boolean) {
-    const personName = isOwe
-      ? iou.to_user?.display_name || (iou.to_phone ? formatPhone(iou.to_phone) : "someone")
-      : iou.from_user?.display_name || "Someone";
-
-    const text = isOwe
-      ? `I owe ${personName}${iou.description ? `: ${iou.description}` : ""}`
-      : `${personName} owes me${iou.description ? `: ${iou.description}` : ""}`;
-
+  async function handleShare(iou: IOU) {
     const url = `${window.location.origin}/share/${iou.share_token}`;
 
-    // Native share includes text for SMS/messaging apps
     const shareData = {
-      title: "IOU",
-      text,
       url,
     };
 
@@ -236,7 +225,7 @@ export default function Dashboard() {
                   iou={iou}
                   isOwe={activeTab === "owe"}
                   onMarkRepaid={() => handleMarkRepaid(iou.id)}
-                  onShare={() => handleShare(iou, activeTab === "owe")}
+                  onShare={() => handleShare(iou)}
                 />
               ))
             )}

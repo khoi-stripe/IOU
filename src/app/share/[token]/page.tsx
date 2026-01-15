@@ -22,7 +22,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const fromName = fromUser?.display_name || "Someone";
   const description = iou.description || "a favor";
 
-  const title = `${fromName} owes you`;
+  const title = `👁️🅾️🐑 ${fromName} owes you`;
   const fullDescription = `${fromName} owes you ${description}`;
 
   return {
@@ -31,6 +31,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     openGraph: {
       title,
       description: fullDescription,
+      siteName: "👁️🅾️🐑",
       type: "website",
       ...(iou.photo_url && {
         images: [

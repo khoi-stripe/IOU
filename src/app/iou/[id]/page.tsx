@@ -82,14 +82,9 @@ export default function IOUDetail() {
   async function handleShare() {
     if (!iou) return;
 
-    const toName = iou.to_user?.display_name || (iou.to_phone ? formatPhone(iou.to_phone) : "someone");
-    const text = `I owe ${toName}${iou.description ? `: ${iou.description}` : ""}`;
     const url = `${window.location.origin}/share/${iou.share_token}`;
 
-    // Native share includes text for SMS/messaging apps
     const shareData = {
-      title: "IOU",
-      text,
       url,
     };
 

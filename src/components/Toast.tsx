@@ -56,7 +56,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       
       {/* Toast container */}
-      <div className="fixed bottom-20 left-0 right-0 flex items-center justify-center z-50 px-4">
+      <div className="fixed bottom-24 left-0 right-0 flex items-center justify-center z-50 px-4">
         {toasts.map((toast, index) => (
           <SwipeableToast
             key={toast.id}
@@ -149,7 +149,7 @@ function SwipeableToast({
         transform: isTop ? "scale(1)" : `scale(${0.95 - (total - 1 - index) * 0.05})`,
       }}
     >
-      {total > 1 && <span className="opacity-60 mr-1">{index + 1}/{total}</span>}
+      {total > 1 && <span className="opacity-60 mr-3">{index + 1}/{total}</span>}
       {toast.message}
     </div>
   );

@@ -139,26 +139,6 @@ export default function BalanceModal({ oweCount, owedCount, onClose }: BalanceMo
             </>
           )}
           
-          {/* Only one side has IOUs - solid circle, no hole */}
-          {!isBalanced && oweCount > 0 && owedCount === 0 && (
-            <div
-              className="bg-[var(--color-bg)] border-2 border-[var(--color-accent)] rounded-full"
-              style={{
-                width: maxRadius * 2,
-                height: maxRadius * 2,
-              }}
-            />
-          )}
-          
-          {!isBalanced && owedCount > 0 && oweCount === 0 && (
-            <div
-              className="bg-[var(--color-accent)] rounded-full"
-              style={{
-                width: maxRadius * 2,
-                height: maxRadius * 2,
-              }}
-            />
-          )}
 
           {/* Empty state */}
           {total === 0 && (

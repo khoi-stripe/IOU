@@ -5,13 +5,26 @@ import { Redis } from "@upstash/redis";
 const isUpstashConfigured =
   process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN;
 
-// Create rate limiter only if Upstash is configured
-const ratelimit = isUpstashConfigured
+// Create Redis client once
+const redis = isUpstashConfigured ? Redis.fromEnv() : null;
+
+// Rate limiter for phone checks (more generous - prevents enumeration)
+const phoneCheckLimiter = redis
   ? new Ratelimit({
-      redis: Redis.fromEnv(),
-      limiter: Ratelimit.slidingWindow(5, "15 m"), // 5 attempts per 15 minutes
+      redis,
+      limiter: Ratelimit.slidingWindow(10, "15 m"), // 10 checks per 15 minutes
       analytics: true,
-      prefix: "iou:ratelimit",
+      prefix: "iou:phone-check",
+    })
+  : null;
+
+// Rate limiter for PIN attempts (strict - prevents brute force)
+const pinAttemptLimiter = redis
+  ? new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(5, "15 m"), // 5 PIN attempts per 15 minutes
+      analytics: true,
+      prefix: "iou:pin-attempt",
     })
   : null;
 
@@ -22,19 +35,14 @@ export interface RateLimitResult {
 }
 
 /**
- * Check rate limit for authentication attempts
- * Uses phone number as the identifier to prevent brute-force attacks
- *
- * If Upstash is not configured, always allows (for development)
+ * Check rate limit for phone number checks (enumeration protection)
+ * More generous than PIN attempts
  */
-export async function checkAuthRateLimit(
+export async function checkPhoneCheckRateLimit(
   phone: string
 ): Promise<RateLimitResult> {
-  if (!ratelimit) {
-    // Development mode - no rate limiting
-    console.warn(
-      "[RATELIMIT] Upstash not configured - rate limiting disabled"
-    );
+  if (!phoneCheckLimiter) {
+    console.warn("[RATELIMIT] Upstash not configured - rate limiting disabled");
     return {
       success: true,
       remaining: 999,
@@ -42,7 +50,32 @@ export async function checkAuthRateLimit(
     };
   }
 
-  const result = await ratelimit.limit(`auth:${phone}`);
+  const result = await phoneCheckLimiter.limit(`phone:${phone}`);
+
+  return {
+    success: result.success,
+    remaining: result.remaining,
+    reset: result.reset,
+  };
+}
+
+/**
+ * Check rate limit for PIN/authentication attempts (brute-force protection)
+ * Strict limit since PINs are only 6 digits
+ */
+export async function checkAuthRateLimit(
+  phone: string
+): Promise<RateLimitResult> {
+  if (!pinAttemptLimiter) {
+    console.warn("[RATELIMIT] Upstash not configured - rate limiting disabled");
+    return {
+      success: true,
+      remaining: 999,
+      reset: Date.now(),
+    };
+  }
+
+  const result = await pinAttemptLimiter.limit(`auth:${phone}`);
 
   return {
     success: result.success,
@@ -57,7 +90,7 @@ export async function checkAuthRateLimit(
 export async function checkApiRateLimit(
   userId: string
 ): Promise<RateLimitResult> {
-  if (!ratelimit) {
+  if (!redis) {
     return {
       success: true,
       remaining: 999,
@@ -65,9 +98,8 @@ export async function checkApiRateLimit(
     };
   }
 
-  // More generous limit for general API usage
   const generalLimiter = new Ratelimit({
-    redis: Redis.fromEnv(),
+    redis,
     limiter: Ratelimit.slidingWindow(100, "1 m"), // 100 requests per minute
     prefix: "iou:api",
   });
@@ -80,4 +112,3 @@ export async function checkApiRateLimit(
     reset: result.reset,
   };
 }
-

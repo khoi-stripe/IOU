@@ -53,17 +53,14 @@ export default function Home() {
         body: JSON.stringify({ phone }),
       });
 
-      if (res.status === 429) {
-        const data = await res.json();
-        setError(data.error);
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Something went wrong. Please try again.");
         return;
       }
 
-      if (!res.ok) {
-        throw new Error("Failed to check phone");
-      }
-
-      const { action, needsPin } = await res.json();
+      const { action, needsPin } = data;
 
       if (action === "signup") {
         setStep("signup");
@@ -108,12 +105,11 @@ export default function Home() {
         }),
       });
 
+      const data = await res.json();
+
       if (!res.ok) {
-        const data = await res.json();
         throw new Error(data.error || "Failed to authenticate");
       }
-
-      const data = await res.json();
 
       // Check if user needs to upgrade their PIN
       if (data.needsPinUpgrade) {

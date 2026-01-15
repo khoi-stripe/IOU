@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkPhoneExists } from "@/lib/db";
-import { checkAuthRateLimit } from "@/lib/ratelimit";
+import { checkPhoneCheckRateLimit } from "@/lib/ratelimit";
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,8 +13,8 @@ export async function POST(request: NextRequest) {
     // Normalize phone number (remove non-digits)
     const normalizedPhone = phone.replace(/\D/g, "");
 
-    // Rate limit to prevent phone enumeration attacks
-    const rateLimitResult = await checkAuthRateLimit(normalizedPhone);
+    // Rate limit to prevent phone enumeration attacks (separate from PIN attempts)
+    const rateLimitResult = await checkPhoneCheckRateLimit(normalizedPhone);
     if (!rateLimitResult.success) {
       const minutesUntilReset = Math.ceil(
         (rateLimitResult.reset - Date.now()) / 1000 / 60

@@ -32,27 +32,24 @@ export default function BalanceModal({ oweCount, owedCount, onClose }: BalanceMo
   const total = oweCount + owedCount;
   const maxRadius = 150; // max radius in pixels
 
-  // Check if it's a 1:1 ratio (or close to it)
+  // Check if it's a 1:1 ratio
   const isBalanced = oweCount > 0 && owedCount > 0 && oweCount === owedCount;
-
-  // Calculate circle sizes proportionally
-  let blackRadius = 0;
-  let whiteRadius = 0;
-
-  if (total > 0 && !isBalanced) {
-    // The larger count gets the max radius, smaller is proportional
-    if (owedCount >= oweCount) {
-      blackRadius = maxRadius;
-      whiteRadius = oweCount > 0 ? (oweCount / owedCount) * maxRadius : 0;
-    } else {
-      whiteRadius = maxRadius;
-      blackRadius = owedCount > 0 ? (owedCount / oweCount) * maxRadius : 0;
-    }
+  
+  // Determine which side is dominant and calculate hole size
+  // The hole represents what "cancels out"
+  const oweMore = oweCount > owedCount;
+  const owedMore = owedCount > oweCount;
+  
+  // Hole is proportional to the smaller count / larger count
+  let holeRadius = 0;
+  if (oweMore && owedCount > 0) {
+    holeRadius = (owedCount / oweCount) * maxRadius;
+  } else if (owedMore && oweCount > 0) {
+    holeRadius = (oweCount / owedCount) * maxRadius;
   }
-
-  // Ensure minimum visible size if count > 0
-  if (oweCount > 0 && whiteRadius < 20 && !isBalanced) whiteRadius = 20;
-  if (owedCount > 0 && blackRadius < 20 && !isBalanced) blackRadius = 20;
+  
+  // Ensure minimum hole size if there's something to show
+  if (holeRadius > 0 && holeRadius < 20) holeRadius = 20;
 
   return (
     <div className="fixed inset-0 z-50 bg-[var(--color-bg)] flex justify-center">
@@ -76,72 +73,86 @@ export default function BalanceModal({ oweCount, owedCount, onClose }: BalanceMo
           {/* Balanced state - half moon */}
           {isBalanced && (
             <div
-              className="rounded-full overflow-hidden border-2 border-[var(--color-accent)]"
+              className="rounded-full overflow-hidden border-2 border-[var(--color-accent)] relative flex"
               style={{
                 width: maxRadius * 2,
                 height: maxRadius * 2,
               }}
             >
               {/* Left half - white (owe) */}
-              <div 
-                className="absolute top-0 left-0 h-full w-1/2 bg-[var(--color-bg)]"
-              />
+              <div className="w-1/2 h-full bg-[var(--color-bg)]" />
               {/* Right half - black (owed) */}
-              <div 
-                className="absolute top-0 right-0 h-full w-1/2 bg-[var(--color-accent)]"
-              />
+              <div className="w-1/2 h-full bg-[var(--color-accent)]" />
             </div>
           )}
 
-          {/* Normal state - nested circles */}
-          {!isBalanced && whiteRadius >= blackRadius && (
+          {/* You owe more - white circle with black hole */}
+          {!isBalanced && oweMore && (
             <>
-              {/* White circle (larger) - what you owe */}
-              {oweCount > 0 && (
-                <div
-                  className="bg-[var(--color-bg)] border-2 border-[var(--color-accent)] rounded-full absolute"
-                  style={{
-                    width: whiteRadius * 2,
-                    height: whiteRadius * 2,
-                  }}
-                />
-              )}
-              {/* Black circle (smaller) - what you are owed - on top */}
-              {owedCount > 0 && (
+              {/* Outer white circle */}
+              <div
+                className="bg-[var(--color-bg)] border-2 border-[var(--color-accent)] rounded-full absolute"
+                style={{
+                  width: maxRadius * 2,
+                  height: maxRadius * 2,
+                }}
+              />
+              {/* Black hole (what cancels out) */}
+              {holeRadius > 0 && (
                 <div
                   className="bg-[var(--color-accent)] rounded-full absolute"
                   style={{
-                    width: blackRadius * 2,
-                    height: blackRadius * 2,
+                    width: holeRadius * 2,
+                    height: holeRadius * 2,
                   }}
                 />
               )}
             </>
           )}
 
-          {!isBalanced && blackRadius > whiteRadius && (
+          {/* You are owed more - black circle with white hole */}
+          {!isBalanced && owedMore && (
             <>
-              {/* Black circle (larger) - what you are owed */}
-              {owedCount > 0 && (
-                <div
-                  className="bg-[var(--color-accent)] rounded-full absolute"
-                  style={{
-                    width: blackRadius * 2,
-                    height: blackRadius * 2,
-                  }}
-                />
-              )}
-              {/* White circle (smaller) - what you owe - on top */}
-              {oweCount > 0 && (
+              {/* Outer black circle */}
+              <div
+                className="bg-[var(--color-accent)] rounded-full absolute"
+                style={{
+                  width: maxRadius * 2,
+                  height: maxRadius * 2,
+                }}
+              />
+              {/* White hole (what cancels out) */}
+              {holeRadius > 0 && (
                 <div
                   className="bg-[var(--color-bg)] border-2 border-[var(--color-accent)] rounded-full absolute"
                   style={{
-                    width: whiteRadius * 2,
-                    height: whiteRadius * 2,
+                    width: holeRadius * 2,
+                    height: holeRadius * 2,
                   }}
                 />
               )}
             </>
+          )}
+          
+          {/* Only one side has IOUs - solid circle, no hole */}
+          {!isBalanced && oweCount > 0 && owedCount === 0 && (
+            <div
+              className="bg-[var(--color-bg)] border-2 border-[var(--color-accent)] rounded-full absolute"
+              style={{
+                width: maxRadius * 2,
+                height: maxRadius * 2,
+              }}
+            />
+          )}
+          
+          {!isBalanced && owedCount > 0 && oweCount === 0 && (
+            <div
+              className="bg-[var(--color-accent)] rounded-full absolute"
+              style={{
+                width: maxRadius * 2,
+                height: maxRadius * 2,
+              }}
+            />
           )}
 
           {/* Empty state */}

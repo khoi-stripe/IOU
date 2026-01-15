@@ -8,13 +8,13 @@ const isUpstashConfigured =
 // Create Redis client once
 const redis = isUpstashConfigured ? Redis.fromEnv() : null;
 
-// Rate limiter for phone checks (more generous - prevents enumeration)
+// Rate limiter for phone checks (generous - just prevents abuse)
 const phoneCheckLimiter = redis
   ? new Ratelimit({
       redis,
-      limiter: Ratelimit.slidingWindow(10, "15 m"), // 10 checks per 15 minutes
+      limiter: Ratelimit.slidingWindow(30, "5 m"), // 30 checks per 5 minutes
       analytics: true,
-      prefix: "iou:phone-check",
+      prefix: "iou:phone-check-v2",
     })
   : null;
 
@@ -22,9 +22,9 @@ const phoneCheckLimiter = redis
 const pinAttemptLimiter = redis
   ? new Ratelimit({
       redis,
-      limiter: Ratelimit.slidingWindow(5, "15 m"), // 5 PIN attempts per 15 minutes
+      limiter: Ratelimit.slidingWindow(10, "5 m"), // 10 PIN attempts per 5 minutes
       analytics: true,
-      prefix: "iou:pin-attempt",
+      prefix: "iou:pin-attempt-v2",
     })
   : null;
 

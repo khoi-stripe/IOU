@@ -6,6 +6,18 @@ import Loader from "@/components/Loader";
 import Logo from "@/components/Logo";
 import ImageWithLoader from "@/components/ImageWithLoader";
 
+// Enable scrolling on share pages (overrides global overflow:hidden)
+function useEnableScroll() {
+  useEffect(() => {
+    document.documentElement.style.overflow = "auto";
+    document.body.style.overflow = "auto";
+    return () => {
+      document.documentElement.style.overflow = "";
+      document.body.style.overflow = "";
+    };
+  }, []);
+}
+
 interface User {
   id: string;
   phone: string;
@@ -32,6 +44,7 @@ interface Props {
 }
 
 export default function SharePageClient({ token }: Props) {
+  useEnableScroll();
   const [iou, setIou] = useState<IOU | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");

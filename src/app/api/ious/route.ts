@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createIOU, getIOUsByUser, getUserById, enrichIOU } from "@/lib/db";
 import { getAuthenticatedUserId } from "@/lib/session";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const userId = await getAuthenticatedUserId();
 
@@ -15,12 +15,19 @@ export async function GET() {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const { owed, owing } = await getIOUsByUser(userId);
+    // Parse pagination params
+    const { searchParams } = new URL(request.url);
+    const limit = searchParams.get("limit") ? parseInt(searchParams.get("limit")!) : undefined;
+    const offset = searchParams.get("offset") ? parseInt(searchParams.get("offset")!) : undefined;
+
+    const { owed, owing, hasMoreOwed, hasMoreOwing } = await getIOUsByUser(userId, { limit, offset });
 
     return NextResponse.json({
       user,
       owed: owed.map(enrichIOU),
       owing: owing.map(enrichIOU),
+      hasMoreOwed,
+      hasMoreOwing,
     });
   } catch {
     return NextResponse.json(

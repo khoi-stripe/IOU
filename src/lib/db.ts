@@ -255,21 +255,28 @@ export async function createIOU(
   return iou;
 }
 
-export async function getIOUsByUser(userId: string): Promise<{ owed: IOU[]; owing: IOU[] }> {
+export async function getIOUsByUser(
+  userId: string,
+  options?: { limit?: number; offset?: number }
+): Promise<{ owed: IOU[]; owing: IOU[]; hasMoreOwed: boolean; hasMoreOwing: boolean }> {
   const supabase = getSupabase();
   const user = await getUserById(userId);
-  if (!user) return { owed: [], owing: [] };
+  if (!user) return { owed: [], owing: [], hasMoreOwed: false, hasMoreOwing: false };
+
+  const limit = options?.limit ?? 1000; // Default to large number if no limit
+  const offset = options?.offset ?? 0;
 
   // IOUs where this user owes someone
-  const { data: owed } = await supabase
+  const { data: owed, count: owedCount } = await supabase
     .from("iou_ious")
     .select(`
       *,
       from_user:iou_users!iou_ious_from_user_id_fkey(*),
       to_user:iou_users!iou_ious_to_user_id_fkey(*)
-    `)
+    `, { count: "exact" })
     .eq("from_user_id", userId)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .range(offset, offset + limit - 1);
 
   // IOUs where this user is owed (by phone or userId)
   const { data: owingByUserId } = await supabase
@@ -293,15 +300,22 @@ export async function getIOUsByUser(userId: string): Promise<{ owed: IOU[]; owin
     .is("to_user_id", null)
     .order("created_at", { ascending: false });
 
-  // Combine and deduplicate owing
+  // Combine and deduplicate owing, then apply pagination
   const owingMap = new Map<string, IOU>();
   [...(owingByUserId || []), ...(owingByPhone || [])].forEach((iou) => {
     owingMap.set(iou.id, iou as IOU);
   });
+  
+  const allOwing = Array.from(owingMap.values()).sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
+  const paginatedOwing = allOwing.slice(offset, offset + limit);
 
   return {
     owed: (owed || []) as IOU[],
-    owing: Array.from(owingMap.values()),
+    owing: paginatedOwing,
+    hasMoreOwed: (owedCount ?? 0) > offset + limit,
+    hasMoreOwing: allOwing.length > offset + limit,
   };
 }
 

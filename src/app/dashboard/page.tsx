@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Loader from "@/components/Loader";
@@ -8,6 +8,8 @@ import Logo from "@/components/Logo";
 import { useToast } from "@/components/Toast";
 import ImageWithLoader from "@/components/ImageWithLoader";
 import BalanceModal from "@/components/BalanceModal";
+
+const PAGE_SIZE = 10;
 
 interface User {
   id: string;
@@ -50,10 +52,14 @@ export default function Dashboard() {
   const [owed, setOwed] = useState<IOU[]>([]);
   const [owing, setOwing] = useState<IOU[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMoreOwed, setHasMoreOwed] = useState(false);
+  const [hasMoreOwing, setHasMoreOwing] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>("owe");
   const [filter, setFilter] = useState<Filter>("all");
   const [showBalance, setShowBalance] = useState(false);
   const notificationsShownRef = useRef(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -94,13 +100,10 @@ export default function Dashboard() {
     fetchNotifications();
   }, [showToast]);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  async function fetchData() {
+  const fetchData = useCallback(async (append = false) => {
     try {
-      const res = await fetch("/api/ious");
+      const offset = append ? (activeTab === "owe" ? owed.length : owing.length) : 0;
+      const res = await fetch(`/api/ious?limit=${PAGE_SIZE}&offset=${offset}`);
       if (!res.ok) {
         if (res.status === 401) {
           router.push("/");
@@ -110,14 +113,55 @@ export default function Dashboard() {
       }
       const data = await res.json();
       setUser(data.user);
-      setOwed(data.owed);
-      setOwing(data.owing);
+      
+      if (append) {
+        setOwed(prev => [...prev, ...data.owed]);
+        setOwing(prev => [...prev, ...data.owing]);
+      } else {
+        setOwed(data.owed);
+        setOwing(data.owing);
+      }
+      
+      setHasMoreOwed(data.hasMoreOwed);
+      setHasMoreOwing(data.hasMoreOwing);
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
-  }
+  }, [activeTab, owed.length, owing.length, router]);
+
+  useEffect(() => {
+    fetchData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const loadMore = useCallback(() => {
+    const hasMore = activeTab === "owe" ? hasMoreOwed : hasMoreOwing;
+    if (loadingMore || !hasMore) return;
+    
+    setLoadingMore(true);
+    fetchData(true);
+  }, [activeTab, hasMoreOwed, hasMoreOwing, loadingMore, fetchData]);
+
+  // Scroll detection for infinite scroll
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    function handleScroll() {
+      if (!container) return;
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      // Load more when within 200px of bottom
+      if (scrollHeight - scrollTop - clientHeight < 200) {
+        loadMore();
+      }
+    }
+
+    container.addEventListener("scroll", handleScroll);
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, [loadMore]);
 
   async function handleMarkRepaid(id: string) {
     try {
@@ -127,7 +171,13 @@ export default function Dashboard() {
         body: JSON.stringify({ action: "repaid" }),
       });
       if (res.ok) {
-        fetchData();
+        // Update locally instead of refetching to preserve pagination state
+        setOwed(prev => prev.map(iou => 
+          iou.id === id ? { ...iou, status: "repaid" as const, repaid_at: new Date().toISOString() } : iou
+        ));
+        setOwing(prev => prev.map(iou => 
+          iou.id === id ? { ...iou, status: "repaid" as const, repaid_at: new Date().toISOString() } : iou
+        ));
       }
     } catch (err) {
       console.error(err);
@@ -171,7 +221,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="flex flex-col h-full pt-4 pb-16">
+    <div className="flex flex-col h-full pt-4 pb-20">
       {/* Balance Modal */}
       {showBalance && (
         <BalanceModal
@@ -197,7 +247,7 @@ export default function Dashboard() {
       </header>
 
       {/* Tabs + Content Container */}
-      <div className="flex flex-col flex-1 min-h-0 mb-2">
+      <div className="flex flex-col flex-1 min-h-0">
         {/* Tabs */}
         <div className="flex gap-2 shrink-0">
           <button
@@ -267,21 +317,28 @@ export default function Dashboard() {
           </div>
 
           {/* List - scrollable */}
-          <div className="space-y-3 p-4 overflow-y-auto flex-1 min-h-0">
+          <div ref={scrollContainerRef} className="space-y-3 p-4 overflow-y-auto flex-1 min-h-0">
             {filtered.length === 0 ? (
               <p className="text-center py-12 text-[var(--color-text-muted)] text-sm">
                 No IOUs yet
               </p>
             ) : (
-              filtered.map((iou) => (
-                <IOUCard
-                  key={iou.id}
-                  iou={iou}
-                  isOwe={activeTab === "owe"}
-                  onMarkRepaid={() => handleMarkRepaid(iou.id)}
-                  onShare={() => handleShare(iou)}
-                />
-              ))
+              <>
+                {filtered.map((iou) => (
+                  <IOUCard
+                    key={iou.id}
+                    iou={iou}
+                    isOwe={activeTab === "owe"}
+                    onMarkRepaid={() => handleMarkRepaid(iou.id)}
+                    onShare={() => handleShare(iou)}
+                  />
+                ))}
+                {loadingMore && (
+                  <div className="py-4 text-center">
+                    <span className="text-sm text-[var(--color-text-muted)]">Loading...</span>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -290,7 +347,7 @@ export default function Dashboard() {
       {/* Fixed bottom button */}
       <Link
         href="/new"
-        className="fixed bottom-0 left-0 right-0 m-2 py-4 bg-[var(--color-accent)] text-[var(--color-bg)] text-center text-sm font-bold rounded-full hover:opacity-90 transition-opacity"
+        className="fixed bottom-0 left-0 right-0 mx-2 mt-2 mb-4 py-4 bg-[var(--color-accent)] text-[var(--color-bg)] text-center text-sm font-bold rounded-full hover:opacity-90 transition-opacity"
       >
         + NEW
       </Link>

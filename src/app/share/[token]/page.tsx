@@ -22,8 +22,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const fromName = fromUser?.display_name || "Someone";
   const description = iou.description || "a favor";
 
-  const title = `👁️🅾️🐑 ${fromName} owes you`;
-  const fullDescription = `${fromName} owes you ${description}`;
+  const title = `👁️🅾️🐑 IOU from ${fromName}`;
+  const fullDescription = description;
 
   return {
     title,

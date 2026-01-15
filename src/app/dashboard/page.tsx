@@ -374,39 +374,38 @@ function IOUCard({
 
   return (
     <div className="p-4 bg-[var(--color-bg-secondary)] space-y-3 rounded-[4px]">
-      {/* Top row: date + share icon + status */}
+      {/* Top row: status + date + share icon */}
       <div className="flex items-center justify-between">
-        <span className="text-xs text-[var(--color-text-muted)]">
-          {new Date(iou.created_at).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-          })}
-        </span>
-
         <div className="flex items-center gap-2">
-          {/* Share icon */}
-          <button
-            onClick={onShare}
-            className="p-1 hover:opacity-60 transition-opacity text-[var(--color-text-muted)]"
-            aria-label="Share"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-              <polyline points="16 6 12 2 8 6" />
-              <line x1="12" y1="2" x2="12" y2="15" />
-            </svg>
-          </button>
-
           {/* Status circle */}
           <span
-            className={`w-3 h-3 rounded-full border ${
+            className={`w-2.5 h-2.5 rounded-full border ${
               isPending
                 ? "border-[var(--color-text-muted)] bg-transparent"
                 : "border-[var(--color-text)] bg-[var(--color-text)]"
             }`}
           />
+          <span className="text-xs text-[var(--color-text-muted)]">
+            {new Date(iou.created_at).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            })}
+          </span>
         </div>
+
+        {/* Share icon */}
+        <button
+          onClick={onShare}
+          className="p-1 hover:opacity-60 transition-opacity text-[var(--color-text-muted)]"
+          aria-label="Share"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+            <polyline points="16 6 12 2 8 6" />
+            <line x1="12" y1="2" x2="12" y2="15" />
+          </svg>
+        </button>
       </div>
 
       {/* Content */}
@@ -438,7 +437,7 @@ function IOUCard({
       )}
 
       {/* Mark Repaid button */}
-      {isPending && isOwe && (
+      {isPending && (
         <HoldToConfirmButton onConfirm={onMarkRepaid} label="Hold to Mark Repaid" />
       )}
     </div>

@@ -107,7 +107,7 @@ export default function SharePageClient({ token }: Props) {
       </header>
 
       <div className="p-6 bg-[var(--color-bg-secondary)] rounded-[4px] space-y-4">
-        <div className="text-center space-y-2">
+        <div className="text-center">
           <p style={{ fontSize: "16px" }}>
             <span className="font-bold">{fromName}</span> owes you
           </p>

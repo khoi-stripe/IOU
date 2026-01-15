@@ -349,7 +349,7 @@ export async function getIOUByShareToken(token: string): Promise<IOU | null> {
   return data as IOU | null;
 }
 
-export async function markIOURepaid(id: string): Promise<IOU | null> {
+export async function markIOURepaid(id: string, markedByUserId: string): Promise<IOU | null> {
   const supabase = getSupabase();
   const { data, error } = await supabase
     .from("iou_ious")
@@ -369,18 +369,25 @@ export async function markIOURepaid(id: string): Promise<IOU | null> {
   
   const iou = data as IOU;
   
-  // Create notification for the person who was owed (to_user)
-  if (iou.to_user_id) {
-    const fromName = iou.from_user?.display_name || "Someone";
-    const description = iou.description ? `: ${iou.description}` : "";
-    const message = `${fromName} repaid you${description}`;
-    
-    try {
+  // Determine who marked it and notify the other party
+  const isMarkedByOwer = iou.from_user_id === markedByUserId;
+  const description = iou.description ? `: ${iou.description}` : "";
+  
+  try {
+    if (isMarkedByOwer && iou.to_user_id) {
+      // Ower marked it → notify owee
+      const fromName = iou.from_user?.display_name || "Someone";
+      const message = `${fromName} repaid you${description}`;
       await createNotification(iou.to_user_id, iou.id, "repaid", message);
-    } catch (e) {
-      // Don't fail the repayment if notification fails
-      console.error("Failed to create notification:", e);
+    } else if (!isMarkedByOwer && iou.from_user_id) {
+      // Owee marked it → notify ower
+      const toName = iou.to_user?.display_name || "Someone";
+      const message = `${toName} marked your IOU as repaid${description}`;
+      await createNotification(iou.from_user_id, iou.id, "repaid", message);
     }
+  } catch (e) {
+    // Don't fail the repayment if notification fails
+    console.error("Failed to create notification:", e);
   }
   
   return iou;

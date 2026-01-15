@@ -258,7 +258,7 @@ export default function NewIOU() {
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept="image/*,.heic,.heif"
               onChange={handlePhotoUpload}
               className="hidden"
             />

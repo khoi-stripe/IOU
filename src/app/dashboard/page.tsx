@@ -236,10 +236,8 @@ export default function Dashboard() {
           <div className="flex gap-3 text-xs pt-4 px-4 bg-[var(--color-bg)] shrink-0">
             <button
               onClick={() => setFilter("all")}
-              className={`transition-colors flex items-center gap-1.5 pb-1 ${
-                filter === "all"
-                  ? "text-[var(--color-text)] border-b border-current"
-                  : "text-[var(--color-text-muted)]"
+              className={`transition-colors flex items-center gap-1.5 pb-1 text-[var(--color-text)] ${
+                filter === "all" ? "border-b border-current" : ""
               }`}
             >
               <span 
@@ -250,10 +248,8 @@ export default function Dashboard() {
             </button>
             <button
               onClick={() => setFilter("pending")}
-              className={`transition-colors flex items-center gap-1.5 pb-1 ${
-                filter === "pending"
-                  ? "text-[var(--color-text)] border-b border-current"
-                  : "text-[var(--color-text-muted)]"
+              className={`transition-colors flex items-center gap-1.5 pb-1 text-[var(--color-text)] ${
+                filter === "pending" ? "border-b border-current" : ""
               }`}
             >
               <span className="inline-block w-2.5 h-2.5 rounded-full border border-current" />
@@ -261,10 +257,8 @@ export default function Dashboard() {
             </button>
             <button
               onClick={() => setFilter("repaid")}
-              className={`transition-colors flex items-center gap-1.5 pb-1 ${
-                filter === "repaid"
-                  ? "text-[var(--color-text)] border-b border-current"
-                  : "text-[var(--color-text-muted)]"
+              className={`transition-colors flex items-center gap-1.5 pb-1 text-[var(--color-text)] ${
+                filter === "repaid" ? "border-b border-current" : ""
               }`}
             >
               <span className="inline-block w-2.5 h-2.5 rounded-full bg-current" />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Logo from "./Logo";
 
 interface BalanceModalProps {
@@ -12,6 +12,14 @@ interface BalanceModalProps {
 }
 
 export default function BalanceModal({ oweCount, owedCount, oweRepaidCount, owedRepaidCount, onClose }: BalanceModalProps) {
+  const [isClosing, setIsClosing] = useState(false);
+
+  const handleClose = useCallback(() => {
+    setIsClosing(true);
+    // Wait for animation to complete before actually closing
+    setTimeout(onClose, 500);
+  }, [onClose]);
+
   // Prevent body scroll when modal is open
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -24,12 +32,12 @@ export default function BalanceModal({ oweCount, owedCount, oweRepaidCount, owed
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") {
-        onClose();
+        handleClose();
       }
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
+  }, [handleClose]);
 
   const total = oweCount + owedCount;
   const maxRadius = 150; // max radius in pixels
@@ -62,12 +70,12 @@ export default function BalanceModal({ oweCount, owedCount, oweRepaidCount, owed
     <div className="fixed inset-0 z-50 bg-[var(--color-bg)] flex justify-center">
       <div className="flex flex-col w-full max-w-md px-2">
         {/* Header */}
-        <header className="flex items-center justify-between px-4 pt-4 shrink-0">
+        <header className={`flex items-center justify-between px-4 pt-4 shrink-0 transition-opacity duration-300 ${isClosing ? "opacity-0" : ""}`}>
           <button className="text-lg -mt-[9px]">
             <Logo />
           </button>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="text-2xl font-bold w-10 h-10 flex items-center justify-center hover:opacity-60 transition-opacity"
           >
             ×
@@ -80,7 +88,7 @@ export default function BalanceModal({ oweCount, owedCount, oweRepaidCount, owed
           {/* Balanced state - half moon */}
           {isBalanced && (
             <div
-              className="rounded-full overflow-hidden border-2 border-[var(--color-accent)] relative flex animate-circle-outer"
+              className={`rounded-full overflow-hidden border-2 border-[var(--color-accent)] relative flex ${isClosing ? "animate-circle-outer-out" : "animate-circle-outer"}`}
               style={{
                 width: maxRadius * 2,
                 height: maxRadius * 2,
@@ -98,7 +106,7 @@ export default function BalanceModal({ oweCount, owedCount, oweRepaidCount, owed
             <>
               {/* Outer white circle */}
               <div
-                className="bg-[var(--color-bg)] border-2 border-[var(--color-accent)] rounded-full animate-circle-outer"
+                className={`bg-[var(--color-bg)] border-2 border-[var(--color-accent)] rounded-full ${isClosing ? "animate-circle-outer-out" : "animate-circle-outer"}`}
                 style={{
                   width: maxRadius * 2,
                   height: maxRadius * 2,
@@ -107,7 +115,7 @@ export default function BalanceModal({ oweCount, owedCount, oweRepaidCount, owed
               {/* Black hole (what cancels out) */}
               {holeRadius > 0 && (
                 <div
-                  className="bg-[var(--color-accent)] rounded-full absolute animate-circle-inner"
+                  className={`bg-[var(--color-accent)] rounded-full absolute ${isClosing ? "animate-circle-inner-out" : "animate-circle-inner"}`}
                   style={{
                     width: holeRadius * 2,
                     height: holeRadius * 2,
@@ -122,7 +130,7 @@ export default function BalanceModal({ oweCount, owedCount, oweRepaidCount, owed
             <>
               {/* Outer black circle */}
               <div
-                className="bg-[var(--color-accent)] rounded-full animate-circle-outer"
+                className={`bg-[var(--color-accent)] rounded-full ${isClosing ? "animate-circle-outer-out" : "animate-circle-outer"}`}
                 style={{
                   width: maxRadius * 2,
                   height: maxRadius * 2,
@@ -131,7 +139,7 @@ export default function BalanceModal({ oweCount, owedCount, oweRepaidCount, owed
               {/* White hole (what cancels out) */}
               {holeRadius > 0 && (
                 <div
-                  className="bg-[var(--color-bg)] border-2 border-[var(--color-accent)] rounded-full absolute animate-circle-inner"
+                  className={`bg-[var(--color-bg)] border-2 border-[var(--color-accent)] rounded-full absolute ${isClosing ? "animate-circle-inner-out" : "animate-circle-inner"}`}
                   style={{
                     width: holeRadius * 2,
                     height: holeRadius * 2,
@@ -150,7 +158,7 @@ export default function BalanceModal({ oweCount, owedCount, oweRepaidCount, owed
       </div>
 
         {/* Legend */}
-        <div className="pb-8 shrink-0 px-4">
+        <div className={`pb-8 shrink-0 px-4 transition-opacity duration-300 ${isClosing ? "opacity-0" : ""}`}>
           {/* Header row */}
           <div className="grid grid-cols-4 gap-2 mb-2 text-xs text-[var(--color-text-muted)] uppercase">
             <div></div>

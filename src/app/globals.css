@@ -195,3 +195,24 @@ button {
   animation-delay: 0.35s;
 }
 
+/* Exit animations - inner collapses first, then outer */
+@keyframes circle-out {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0);
+  }
+}
+
+.animate-circle-inner-out {
+  animation: circle-out 0.3s cubic-bezier(0.55, 0, 1, 0.45) forwards;
+}
+
+.animate-circle-outer-out {
+  animation: circle-out 0.4s cubic-bezier(0.55, 0, 1, 0.45) forwards;
+  animation-delay: 0.15s;
+}
+

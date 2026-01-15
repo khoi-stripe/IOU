@@ -215,17 +215,17 @@ export default function NewIOU() {
 
               {/* Dropdown */}
               {showDropdown && filteredContacts.length > 0 && (
-                <div className="absolute z-10 w-full mt-2 border border-[var(--color-border)] bg-[var(--color-bg)] rounded-lg max-h-48 overflow-y-auto">
+                <div className="absolute z-10 w-full mt-2 bg-[var(--color-accent)] text-[var(--color-bg)] rounded-lg max-h-48 overflow-y-auto">
                   {filteredContacts.map((contact) => (
                     <button
                       key={contact.phone}
                       type="button"
                       onClick={() => handleSelectContact(contact)}
-                      className="w-full px-4 py-3 text-left text-sm hover:bg-[var(--color-bg-secondary)] flex items-center justify-between first:rounded-t-lg last:rounded-b-lg"
+                      className="w-full px-4 py-3 text-left text-sm hover:opacity-70 active:opacity-50 active:scale-[0.98] transition-all flex items-center justify-between first:rounded-t-lg last:rounded-b-lg"
                     >
                       <span>{getDisplayLabel(contact)}</span>
                       {!contact.isRegistered && (
-                        <span className="text-xs text-[var(--color-text-muted)]">
+                        <span className="text-xs opacity-60">
                           not registered
                         </span>
                       )}
@@ -234,11 +234,6 @@ export default function NewIOU() {
                 </div>
               )}
             </div>
-            {toPhone && searchValue !== toPhone && (
-              <p className="text-xs text-[var(--color-text-muted)] mt-2">
-                → {toPhone}
-              </p>
-            )}
           </div>
 
           {/* Description */}

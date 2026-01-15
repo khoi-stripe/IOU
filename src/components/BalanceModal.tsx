@@ -36,16 +36,21 @@ export default function BalanceModal({ oweCount, owedCount, onClose }: BalanceMo
   const isBalanced = oweCount > 0 && owedCount > 0 && oweCount === owedCount;
   
   // Determine which side is dominant and calculate hole size
-  // The hole represents what "cancels out"
+  // The hole's AREA should be proportional to the smaller count
+  // Since area = πr², we need: holeArea/totalArea = smallerCount/total
+  // So: r²/R² = smallerCount/total → r = R * sqrt(smallerCount/total)
   const oweMore = oweCount > owedCount;
   const owedMore = owedCount > oweCount;
   
-  // Hole is proportional to the smaller count / larger count
   let holeRadius = 0;
   if (oweMore && owedCount > 0) {
-    holeRadius = (owedCount / oweCount) * maxRadius;
+    // White outer (owe), black hole (owed)
+    // Black hole area should be owedCount/total of the total area
+    holeRadius = maxRadius * Math.sqrt(owedCount / total);
   } else if (owedMore && oweCount > 0) {
-    holeRadius = (oweCount / owedCount) * maxRadius;
+    // Black outer (owed), white hole (owe)
+    // White hole area should be oweCount/total of the total area
+    holeRadius = maxRadius * Math.sqrt(oweCount / total);
   }
   
   // Ensure minimum hole size if there's something to show
@@ -91,7 +96,7 @@ export default function BalanceModal({ oweCount, owedCount, onClose }: BalanceMo
             <>
               {/* Outer white circle */}
               <div
-                className="bg-[var(--color-bg)] border-2 border-[var(--color-accent)] rounded-full absolute"
+                className="bg-[var(--color-bg)] border-2 border-[var(--color-accent)] rounded-full"
                 style={{
                   width: maxRadius * 2,
                   height: maxRadius * 2,
@@ -115,7 +120,7 @@ export default function BalanceModal({ oweCount, owedCount, onClose }: BalanceMo
             <>
               {/* Outer black circle */}
               <div
-                className="bg-[var(--color-accent)] rounded-full absolute"
+                className="bg-[var(--color-accent)] rounded-full"
                 style={{
                   width: maxRadius * 2,
                   height: maxRadius * 2,
@@ -137,7 +142,7 @@ export default function BalanceModal({ oweCount, owedCount, onClose }: BalanceMo
           {/* Only one side has IOUs - solid circle, no hole */}
           {!isBalanced && oweCount > 0 && owedCount === 0 && (
             <div
-              className="bg-[var(--color-bg)] border-2 border-[var(--color-accent)] rounded-full absolute"
+              className="bg-[var(--color-bg)] border-2 border-[var(--color-accent)] rounded-full"
               style={{
                 width: maxRadius * 2,
                 height: maxRadius * 2,
@@ -147,7 +152,7 @@ export default function BalanceModal({ oweCount, owedCount, onClose }: BalanceMo
           
           {!isBalanced && owedCount > 0 && oweCount === 0 && (
             <div
-              className="bg-[var(--color-accent)] rounded-full absolute"
+              className="bg-[var(--color-accent)] rounded-full"
               style={{
                 width: maxRadius * 2,
                 height: maxRadius * 2,

@@ -55,20 +55,23 @@ export default function BalanceModal({ oweCount, owedCount, onClose }: BalanceMo
   if (owedCount > 0 && blackRadius < 20 && !isBalanced) blackRadius = 20;
 
   return (
-    <div className="fixed inset-0 z-50 bg-[var(--color-bg)] flex flex-col">
-      {/* Header */}
-      <header className="flex items-center justify-between px-4 pt-4 shrink-0">
-        <Logo />
-        <button
-          onClick={onClose}
-          className="text-2xl font-bold w-10 h-10 flex items-center justify-center hover:opacity-60 transition-opacity"
-        >
-          ×
-        </button>
-      </header>
+    <div className="fixed inset-0 z-50 bg-[var(--color-bg)] flex justify-center">
+      <div className="flex flex-col w-full max-w-md px-2">
+        {/* Header */}
+        <header className="flex items-center justify-between px-4 pt-4 shrink-0">
+          <button className="text-lg">
+            <Logo />
+          </button>
+          <button
+            onClick={onClose}
+            className="text-2xl font-bold w-10 h-10 flex items-center justify-center hover:opacity-60 transition-opacity"
+          >
+            ×
+          </button>
+        </header>
 
-      {/* Visualization */}
-      <div className="flex-1 flex items-center justify-center">
+        {/* Visualization */}
+        <div className="flex-1 flex items-center justify-center">
         <div className="relative flex items-center justify-center">
           {/* Balanced state - half moon */}
           {isBalanced && (
@@ -148,15 +151,16 @@ export default function BalanceModal({ oweCount, owedCount, onClose }: BalanceMo
         </div>
       </div>
 
-      {/* Legend */}
-      <div className="flex justify-center gap-4 pb-8 shrink-0">
-        <div className="flex items-center gap-2 px-4 py-2 border border-[var(--color-border)] rounded">
-          <span className="text-sm font-medium uppercase">Owe</span>
-          <span className="text-sm font-medium">{oweCount}</span>
-        </div>
-        <div className="flex items-center gap-2 px-4 py-2 bg-[var(--color-accent)] text-[var(--color-bg)] rounded">
-          <span className="text-sm font-medium uppercase">Owed</span>
-          <span className="text-sm font-medium">{owedCount}</span>
+        {/* Legend */}
+        <div className="flex justify-center gap-4 pb-8 shrink-0">
+          <div className="flex items-center gap-2 px-4 py-2 border border-[var(--color-border)] rounded">
+            <span className="text-sm font-medium uppercase">Owe</span>
+            <span className="text-sm font-medium">{oweCount}</span>
+          </div>
+          <div className="flex items-center gap-2 px-4 py-2 bg-[var(--color-accent)] text-[var(--color-bg)] rounded">
+            <span className="text-sm font-medium uppercase">Owed</span>
+            <span className="text-sm font-medium">{owedCount}</span>
+          </div>
         </div>
       </div>
     </div>

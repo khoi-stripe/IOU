@@ -149,3 +149,19 @@ button {
   position: absolute;
 }
 
+/* Menu animation */
+@keyframes menu-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-menu-in {
+  animation: menu-in 0.15s ease-out;
+}
+

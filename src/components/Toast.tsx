@@ -1,14 +1,17 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useRef, ReactNode } from "react";
 
 interface Toast {
   id: number;
   message: string;
+  persistent?: boolean;
+  onDismiss?: () => void;
 }
 
 interface ToastContextType {
-  showToast: (message: string) => void;
+  showToast: (message: string, options?: { persistent?: boolean; onDismiss?: () => void }) => number;
+  dismissToast: (id: number) => void;
 }
 
 const ToastContext = createContext<ToastContextType | null>(null);
@@ -24,32 +27,124 @@ export function useToast() {
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  const showToast = useCallback((message: string) => {
-    const id = Date.now();
-    setToasts((prev) => [...prev, { id, message }]);
-
-    // Auto-dismiss after 2 seconds
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 2000);
+  const dismissToast = useCallback((id: number) => {
+    setToasts((prev) => {
+      const toast = prev.find((t) => t.id === id);
+      if (toast?.onDismiss) {
+        toast.onDismiss();
+      }
+      return prev.filter((t) => t.id !== id);
+    });
   }, []);
 
+  const showToast = useCallback((message: string, options?: { persistent?: boolean; onDismiss?: () => void }) => {
+    const id = Date.now() + Math.random();
+    setToasts((prev) => [...prev, { id, message, persistent: options?.persistent, onDismiss: options?.onDismiss }]);
+
+    // Auto-dismiss after 3 seconds (unless persistent)
+    if (!options?.persistent) {
+      setTimeout(() => {
+        dismissToast(id);
+      }, 3000);
+    }
+
+    return id;
+  }, [dismissToast]);
+
   return (
-    <ToastContext.Provider value={{ showToast }}>
+    <ToastContext.Provider value={{ showToast, dismissToast }}>
       {children}
       
       {/* Toast container */}
-      <div className="fixed bottom-20 left-0 right-0 flex flex-col items-center gap-2 pointer-events-none z-50 px-4">
-        {toasts.map((toast) => (
-          <div
+      <div className="fixed bottom-20 left-0 right-0 flex flex-col-reverse items-center gap-2 z-50 px-4">
+        {toasts.map((toast, index) => (
+          <SwipeableToast
             key={toast.id}
-            className="bg-[var(--color-text)] text-[var(--color-bg)] px-4 py-2 text-sm font-medium rounded-full animate-toast-in"
-          >
-            {toast.message}
-          </div>
+            toast={toast}
+            index={index}
+            onDismiss={() => dismissToast(toast.id)}
+          />
         ))}
       </div>
     </ToastContext.Provider>
   );
 }
 
+function SwipeableToast({
+  toast,
+  index,
+  onDismiss,
+}: {
+  toast: Toast;
+  index: number;
+  onDismiss: () => void;
+}) {
+  const touchStartX = useRef(0);
+  const currentX = useRef(0);
+  const elementRef = useRef<HTMLDivElement>(null);
+  const [swiping, setSwiping] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    currentX.current = 0;
+    setSwiping(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!swiping) return;
+    currentX.current = e.touches[0].clientX - touchStartX.current;
+    if (elementRef.current) {
+      elementRef.current.style.transform = `translateX(${currentX.current}px)`;
+      elementRef.current.style.opacity = `${1 - Math.abs(currentX.current) / 200}`;
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setSwiping(false);
+    const threshold = 80;
+    
+    if (Math.abs(currentX.current) > threshold) {
+      // Swipe out
+      setDismissed(true);
+      if (elementRef.current) {
+        elementRef.current.style.transform = `translateX(${currentX.current > 0 ? 300 : -300}px)`;
+        elementRef.current.style.opacity = "0";
+      }
+      setTimeout(onDismiss, 150);
+    } else {
+      // Snap back
+      if (elementRef.current) {
+        elementRef.current.style.transition = "transform 0.2s, opacity 0.2s";
+        elementRef.current.style.transform = "translateX(0)";
+        elementRef.current.style.opacity = "1";
+        setTimeout(() => {
+          if (elementRef.current) {
+            elementRef.current.style.transition = "";
+          }
+        }, 200);
+      }
+    }
+  };
+
+  // Stack offset for multiple toasts
+  const stackOffset = index * 4;
+
+  return (
+    <div
+      ref={elementRef}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      className={`bg-[var(--color-text)] text-[var(--color-bg)] px-4 py-2 text-sm font-medium rounded-full cursor-grab active:cursor-grabbing select-none ${
+        dismissed ? "" : "animate-toast-in"
+      }`}
+      style={{
+        marginBottom: stackOffset,
+        touchAction: "pan-y",
+      }}
+    >
+      {toast.message}
+    </div>
+  );
+}

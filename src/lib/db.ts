@@ -31,6 +31,16 @@ export interface Contact {
   isRegistered: boolean;
 }
 
+export interface Notification {
+  id: string;
+  user_id: string;
+  iou_id: string;
+  type: "repaid" | "new_iou";
+  message: string;
+  created_at: string;
+  acknowledged_at: string | null;
+}
+
 // User operations
 
 // Check if a phone number is already registered and if it has a PIN
@@ -189,7 +199,25 @@ export async function createIOU(
     .single();
 
   if (error) throw error;
-  return data as IOU;
+  
+  const iou = data as IOU;
+  
+  // Create notification for the person who is owed (if they're a registered user)
+  if (toUserId) {
+    const fromUser = await getUserById(fromUserId);
+    const fromName = fromUser?.display_name || "Someone";
+    const descText = description ? `: ${description}` : "";
+    const message = `${fromName} owes you${descText}`;
+    
+    try {
+      await createNotification(toUserId, iou.id, "new_iou", message);
+    } catch (e) {
+      // Don't fail the IOU creation if notification fails
+      console.error("Failed to create notification:", e);
+    }
+  }
+  
+  return iou;
 }
 
 export async function getIOUsByUser(userId: string): Promise<{ owed: IOU[]; owing: IOU[] }> {
@@ -289,7 +317,24 @@ export async function markIOURepaid(id: string): Promise<IOU | null> {
     .single();
 
   if (error) return null;
-  return data as IOU;
+  
+  const iou = data as IOU;
+  
+  // Create notification for the person who was owed (to_user)
+  if (iou.to_user_id) {
+    const fromName = iou.from_user?.display_name || "Someone";
+    const description = iou.description ? `: ${iou.description}` : "";
+    const message = `${fromName} repaid you${description}`;
+    
+    try {
+      await createNotification(iou.to_user_id, iou.id, "repaid", message);
+    } catch (e) {
+      // Don't fail the repayment if notification fails
+      console.error("Failed to create notification:", e);
+    }
+  }
+  
+  return iou;
 }
 
 export async function linkIOUToUser(iouId: string, userId: string): Promise<void> {
@@ -390,4 +435,56 @@ export async function getContactsForUser(userId: string): Promise<Contact[]> {
   }
 
   return Array.from(contactsMap.values());
+}
+
+// Notification operations
+export async function createNotification(
+  userId: string,
+  iouId: string,
+  type: "repaid" | "new_iou",
+  message: string
+): Promise<Notification> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from("iou_notifications")
+    .insert({
+      user_id: userId,
+      iou_id: iouId,
+      type,
+      message,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as Notification;
+}
+
+export async function getUnacknowledgedNotifications(userId: string): Promise<Notification[]> {
+  const supabase = getSupabase();
+  const { data } = await supabase
+    .from("iou_notifications")
+    .select("*")
+    .eq("user_id", userId)
+    .is("acknowledged_at", null)
+    .order("created_at", { ascending: false });
+
+  return (data || []) as Notification[];
+}
+
+export async function acknowledgeNotification(id: string): Promise<void> {
+  const supabase = getSupabase();
+  await supabase
+    .from("iou_notifications")
+    .update({ acknowledged_at: new Date().toISOString() })
+    .eq("id", id);
+}
+
+export async function acknowledgeAllNotifications(userId: string): Promise<void> {
+  const supabase = getSupabase();
+  await supabase
+    .from("iou_notifications")
+    .update({ acknowledged_at: new Date().toISOString() })
+    .eq("user_id", userId)
+    .is("acknowledged_at", null);
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Loader from "@/components/Loader";
@@ -30,6 +30,16 @@ interface IOU {
   to_user?: User;
 }
 
+interface Notification {
+  id: string;
+  user_id: string;
+  iou_id: string;
+  type: "repaid" | "new_iou";
+  message: string;
+  created_at: string;
+  acknowledged_at: string | null;
+}
+
 type Tab = "owe" | "owed";
 type Filter = "all" | "pending" | "repaid";
 
@@ -43,11 +53,46 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<Tab>("owe");
   const [filter, setFilter] = useState<Filter>("all");
   const [showBalance, setShowBalance] = useState(false);
+  const notificationsShownRef = useRef(false);
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
     router.push("/");
   }
+
+  // Fetch and display notifications on mount
+  useEffect(() => {
+    async function fetchNotifications() {
+      if (notificationsShownRef.current) return;
+      notificationsShownRef.current = true;
+
+      try {
+        const res = await fetch("/api/notifications");
+        if (!res.ok) return;
+        
+        const { notifications } = await res.json() as { notifications: Notification[] };
+        
+        // Show each notification as a toast
+        for (const notification of notifications) {
+          showToast(notification.message, {
+            persistent: true,
+            onDismiss: async () => {
+              // Acknowledge when dismissed
+              await fetch("/api/notifications/acknowledge", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id: notification.id }),
+              });
+            },
+          });
+        }
+      } catch (err) {
+        console.error("Failed to fetch notifications:", err);
+      }
+    }
+
+    fetchNotifications();
+  }, [showToast]);
 
   useEffect(() => {
     fetchData();
@@ -268,40 +313,85 @@ function IOUCard({
   onMarkRepaid: () => void;
   onShare: () => void;
 }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
   const personName = isOwe
     ? iou.to_user?.display_name || (iou.to_phone ? formatPhone(iou.to_phone) : null)
     : iou.from_user?.display_name || "Someone";
 
   const isPending = iou.status === "pending";
 
+  // Close menu on click outside
+  useEffect(() => {
+    if (!menuOpen) return;
+
+    function handleClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [menuOpen]);
+
   return (
     <div className="p-4 bg-[var(--color-bg-secondary)] space-y-3 rounded-[4px]">
-      {/* Top row: date + status */}
+      {/* Top row: status + date + overflow */}
       <div className="flex items-center justify-between">
-        <span className="text-xs text-[var(--color-text-muted)]">
-          {new Date(iou.created_at).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-          })}
-        </span>
-        <span
-          className={`w-3 h-3 rounded-full border ${
-            isPending
-              ? "border-[var(--color-text-muted)] bg-transparent"
-              : "border-[var(--color-text)] bg-[var(--color-text)]"
-          }`}
-        />
-      </div>
+        <div className="flex items-center gap-2">
+          <span
+            className={`w-3 h-3 rounded-full border ${
+              isPending
+                ? "border-[var(--color-text-muted)] bg-transparent"
+                : "border-[var(--color-text)] bg-[var(--color-text)]"
+            }`}
+          />
+          <span className="text-xs text-[var(--color-text-muted)]">
+            {new Date(iou.created_at).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            })}
+          </span>
+        </div>
 
-      {/* Photo */}
-      {iou.photo_url && (
-        <ImageWithLoader
-          src={iou.photo_url}
-          alt="IOU photo"
-          className="w-full aspect-[4/3]"
-        />
-      )}
+        {/* Overflow menu */}
+        <div className="relative" ref={menuRef}>
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="p-1 hover:opacity-60 transition-opacity text-[var(--color-text-muted)]"
+          >
+            •••
+          </button>
+
+          {menuOpen && (
+            <div className="absolute right-0 top-full mt-1 bg-[var(--color-bg)] border border-[var(--color-border)] rounded shadow-lg z-10 min-w-[140px] overflow-hidden origin-top-right animate-menu-in">
+              <button
+                onClick={() => {
+                  onShare();
+                  setMenuOpen(false);
+                }}
+                className="w-full px-4 py-2 text-left text-sm hover:bg-[var(--color-bg-secondary)] transition-colors"
+              >
+                Share
+              </button>
+              {isPending && isOwe && (
+                <button
+                  onClick={() => {
+                    onMarkRepaid();
+                    setMenuOpen(false);
+                  }}
+                  className="w-full px-4 py-2 text-left text-sm bg-[var(--color-accent)] text-[var(--color-bg)] hover:opacity-90 transition-opacity"
+                >
+                  Mark Repaid
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Content */}
       <div className="space-y-1">
@@ -322,23 +412,14 @@ function IOUCard({
         )}
       </div>
 
-      {/* Action buttons */}
-      <div className="flex gap-3">
-        <button
-          onClick={onShare}
-          className="flex-1 px-2 py-1 text-xs font-bold bg-white text-black hover:opacity-80 transition-opacity uppercase rounded-full"
-        >
-          Share
-        </button>
-        {isPending && isOwe && (
-          <button
-            onClick={onMarkRepaid}
-            className="flex-1 px-2 py-1 text-xs font-bold bg-[var(--color-accent)] text-[var(--color-bg)] hover:opacity-90 transition-opacity uppercase rounded-full"
-          >
-            Mark Repaid
-          </button>
-        )}
-      </div>
+      {/* Photo */}
+      {iou.photo_url && (
+        <ImageWithLoader
+          src={iou.photo_url}
+          alt="IOU photo"
+          className="w-full aspect-[4/3]"
+        />
+      )}
     </div>
   );
 }

@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import Loader from "@/components/Loader";
+import Logo from "@/components/Logo";
+import ImageWithLoader from "@/components/ImageWithLoader";
 
 interface User {
   id: string;
@@ -66,7 +68,7 @@ export default function SharePage() {
   if (error || !iou) {
     return (
       <div className="space-y-6 text-center py-12">
-        <h1 className="text-xl font-bold" style={{ letterSpacing: '0.3em' }}>👁️🅾️🐑</h1>
+        <h1 className="text-xl font-bold"><Logo /></h1>
         <p className="text-[var(--color-text-muted)]">
           {error || "IOU not found"}
         </p>
@@ -85,7 +87,7 @@ export default function SharePage() {
   return (
     <div className="space-y-6">
       <header className="text-center space-y-2">
-        <h1 className="text-2xl font-bold" style={{ letterSpacing: '0.3em' }}>👁️🅾️🐑</h1>
+        <h1 className="text-2xl font-bold"><Logo /></h1>
         <p className="text-sm text-[var(--color-text-muted)]">
           A record of a favor
         </p>
@@ -104,10 +106,10 @@ export default function SharePage() {
         </div>
 
         {iou.photo_url && (
-          <img
+          <ImageWithLoader
             src={iou.photo_url}
             alt="IOU photo"
-            className="w-full h-48 object-cover border border-[var(--color-border)]"
+            className="w-full h-48 border border-[var(--color-border)]"
           />
         )}
 

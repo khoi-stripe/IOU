@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Loader from "@/components/Loader";
+import Logo from "@/components/Logo";
 import { useToast } from "@/components/Toast";
+import ImageWithLoader from "@/components/ImageWithLoader";
 
 interface User {
   id: string;
@@ -135,7 +137,7 @@ export default function Dashboard() {
     <div className="flex flex-col h-full pt-4 pb-16">
       {/* Header */}
       <header className="flex items-center justify-between px-4 mb-4 shrink-0">
-        <h1 className="text-lg" style={{ letterSpacing: '0.2em', filter: 'grayscale(1)' }}>👁️🅾️🐑</h1>
+        <h1 className="text-lg"><Logo grayscale /></h1>
         <button 
           onClick={handleLogout}
           className="text-sm font-medium hover:underline underline-offset-4"
@@ -291,10 +293,10 @@ function IOUCard({
 
       {/* Photo */}
       {iou.photo_url && (
-        <img
+        <ImageWithLoader
           src={iou.photo_url}
           alt="IOU photo"
-          className="w-full aspect-[4/3] object-cover"
+          className="w-full aspect-[4/3]"
         />
       )}
 

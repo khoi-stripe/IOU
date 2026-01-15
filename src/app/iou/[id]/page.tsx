@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Loader from "@/components/Loader";
 import { useToast } from "@/components/Toast";
+import ImageWithLoader from "@/components/ImageWithLoader";
 
 interface User {
   id: string;
@@ -169,10 +170,10 @@ export default function IOUDetail() {
         )}
 
         {iou.photo_url && (
-          <img
+          <ImageWithLoader
             src={iou.photo_url}
             alt="IOU photo"
-            className="w-full h-64 object-cover border border-[var(--color-border)]"
+            className="w-full h-64 border border-[var(--color-border)]"
           />
         )}
 

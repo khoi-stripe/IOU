@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Logo from "@/components/Logo";
 
 type Step = "phone" | "signup" | "login" | "setpin";
 
@@ -113,8 +114,8 @@ export default function Home() {
     <div className="h-dvh flex flex-col px-2">
       {/* Header */}
       <header className="pt-8 pb-4 text-center shrink-0">
-        <h1 className="text-2xl" style={{ letterSpacing: "0.3em" }}>
-          👁️🅾️🐑
+        <h1 className="text-2xl">
+          <Logo />
         </h1>
         <p className="text-[var(--color-text-muted)] text-sm mt-2">
           Track favors between friends.

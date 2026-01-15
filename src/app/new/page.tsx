@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Logo from "@/components/Logo";
+import ImageWithLoader from "@/components/ImageWithLoader";
 
 interface Contact {
   phone: string;
@@ -183,7 +185,7 @@ export default function NewIOU() {
     <div className="h-dvh flex flex-col px-2">
       {/* Header */}
       <header className="pt-8 pb-4 text-center shrink-0">
-        <h1 className="text-lg font-medium">New <span style={{ letterSpacing: "0.2em" }}>👁️🅾️🐑</span></h1>
+        <h1 className="text-lg font-medium">New <Logo /></h1>
       </header>
 
       {/* Spacer - pushes form to bottom */}
@@ -268,10 +270,10 @@ export default function NewIOU() {
 
             {photoUrl ? (
               <div className="relative">
-                <img
+                <ImageWithLoader
                   src={photoUrl}
                   alt="IOU photo"
-                  className="w-full h-48 object-cover rounded-lg border border-[var(--color-border)]"
+                  className="w-full h-48 rounded-lg border border-[var(--color-border)]"
                 />
                 <button
                   type="button"

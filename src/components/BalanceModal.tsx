@@ -43,10 +43,10 @@ export default function BalanceModal({ oweCount, owedCount, onClose }: BalanceMo
     // The larger count gets the max radius, smaller is proportional
     if (owedCount >= oweCount) {
       blackRadius = maxRadius;
-      whiteRadius = (oweCount / owedCount) * maxRadius;
+      whiteRadius = oweCount > 0 ? (oweCount / owedCount) * maxRadius : 0;
     } else {
       whiteRadius = maxRadius;
-      blackRadius = (owedCount / oweCount) * maxRadius;
+      blackRadius = owedCount > 0 ? (owedCount / oweCount) * maxRadius : 0;
     }
   }
 
@@ -59,7 +59,7 @@ export default function BalanceModal({ oweCount, owedCount, onClose }: BalanceMo
       <div className="flex flex-col w-full max-w-md px-2">
         {/* Header */}
         <header className="flex items-center justify-between px-4 pt-4 shrink-0">
-          <button className="text-lg">
+          <button className="text-lg -mt-[6px]">
             <Logo />
           </button>
           <button

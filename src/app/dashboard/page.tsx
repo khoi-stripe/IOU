@@ -175,8 +175,8 @@ export default function Dashboard() {
       {/* Balance Modal */}
       {showBalance && (
         <BalanceModal
-          oweCount={owed.length}
-          owedCount={owing.length}
+          oweCount={owed.filter(i => i.status === "pending").length}
+          owedCount={owing.filter(i => i.status === "pending").length}
           onClose={() => setShowBalance(false)}
         />
       )}
@@ -313,34 +313,39 @@ function IOUCard({
   onMarkRepaid: () => void;
   onShare: () => void;
 }) {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-
   const personName = isOwe
     ? iou.to_user?.display_name || (iou.to_phone ? formatPhone(iou.to_phone) : null)
     : iou.from_user?.display_name || "Someone";
 
   const isPending = iou.status === "pending";
 
-  // Close menu on click outside
-  useEffect(() => {
-    if (!menuOpen) return;
-
-    function handleClickOutside(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [menuOpen]);
-
   return (
     <div className="p-4 bg-[var(--color-bg-secondary)] space-y-3 rounded-[4px]">
-      {/* Top row: status + date + overflow */}
+      {/* Top row: date + share icon + status */}
       <div className="flex items-center justify-between">
+        <span className="text-xs text-[var(--color-text-muted)]">
+          {new Date(iou.created_at).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          })}
+        </span>
+
         <div className="flex items-center gap-2">
+          {/* Share icon */}
+          <button
+            onClick={onShare}
+            className="p-1 hover:opacity-60 transition-opacity text-[var(--color-text-muted)]"
+            aria-label="Share"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+              <polyline points="16 6 12 2 8 6" />
+              <line x1="12" y1="2" x2="12" y2="15" />
+            </svg>
+          </button>
+
+          {/* Status circle */}
           <span
             className={`w-3 h-3 rounded-full border ${
               isPending
@@ -348,48 +353,6 @@ function IOUCard({
                 : "border-[var(--color-text)] bg-[var(--color-text)]"
             }`}
           />
-          <span className="text-xs text-[var(--color-text-muted)]">
-            {new Date(iou.created_at).toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-            })}
-          </span>
-        </div>
-
-        {/* Overflow menu */}
-        <div className="relative" ref={menuRef}>
-          <button
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="p-1 hover:opacity-60 transition-opacity text-[var(--color-text-muted)]"
-          >
-            •••
-          </button>
-
-          {menuOpen && (
-            <div className="absolute right-0 top-full mt-1 bg-[var(--color-bg)] border border-[var(--color-border)] rounded shadow-lg z-10 min-w-[140px] overflow-hidden origin-top-right animate-menu-in">
-              <button
-                onClick={() => {
-                  onShare();
-                  setMenuOpen(false);
-                }}
-                className="w-full px-4 py-2 text-left text-sm hover:bg-[var(--color-bg-secondary)] transition-colors"
-              >
-                Share
-              </button>
-              {isPending && isOwe && (
-                <button
-                  onClick={() => {
-                    onMarkRepaid();
-                    setMenuOpen(false);
-                  }}
-                  className="w-full px-4 py-2 text-left text-sm bg-[var(--color-accent)] text-[var(--color-bg)] hover:opacity-90 transition-opacity"
-                >
-                  Mark Repaid
-                </button>
-              )}
-            </div>
-          )}
         </div>
       </div>
 
@@ -420,7 +383,143 @@ function IOUCard({
           className="w-full aspect-[4/3]"
         />
       )}
+
+      {/* Mark Repaid button */}
+      {isPending && isOwe && (
+        <HoldToConfirmButton onConfirm={onMarkRepaid} label="Hold to Mark Repaid" />
+      )}
     </div>
+  );
+}
+
+function HoldToConfirmButton({
+  onConfirm,
+  label,
+  duration = 1500,
+}: {
+  onConfirm: () => void;
+  label: string;
+  duration?: number;
+}) {
+  const [progress, setProgress] = useState(0);
+  const holdingRef = useRef(false);
+  const startTimeRef = useRef(0);
+  const rafRef = useRef<number | null>(null);
+  const confirmedRef = useRef(false);
+  const velocityRef = useRef(0);
+  const progressRef = useRef(0);
+
+  const animateFill = () => {
+    if (!holdingRef.current) return;
+    
+    const elapsed = Date.now() - startTimeRef.current;
+    const newProgress = Math.min((elapsed / duration) * 100, 100);
+    progressRef.current = newProgress;
+    setProgress(newProgress);
+    
+    if (newProgress >= 100 && !confirmedRef.current) {
+      confirmedRef.current = true;
+      holdingRef.current = false;
+      onConfirm();
+      return;
+    }
+    
+    rafRef.current = requestAnimationFrame(animateFill);
+  };
+
+  const animateSpringBack = () => {
+    // Spring physics (toned down)
+    const stiffness = 0.08;
+    const damping = 0.85;
+    const target = 0;
+    
+    const displacement = progressRef.current - target;
+    const springForce = -stiffness * displacement;
+    velocityRef.current = (velocityRef.current + springForce) * damping;
+    progressRef.current += velocityRef.current;
+    
+    // Stop when settled
+    if (Math.abs(progressRef.current) < 0.5 && Math.abs(velocityRef.current) < 0.1) {
+      progressRef.current = 0;
+      setProgress(0);
+      return;
+    }
+    
+    setProgress(Math.max(0, progressRef.current));
+    rafRef.current = requestAnimationFrame(animateSpringBack);
+  };
+
+  const startHold = (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    if (holdingRef.current) return;
+    
+    // Cancel any spring animation
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
+    }
+    
+    holdingRef.current = true;
+    confirmedRef.current = false;
+    velocityRef.current = 0;
+    startTimeRef.current = Date.now() - (progressRef.current / 100 * duration); // Resume from current progress
+    rafRef.current = requestAnimationFrame(animateFill);
+  };
+
+  const stopHold = () => {
+    if (!holdingRef.current) return;
+    holdingRef.current = false;
+    
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+    
+    if (!confirmedRef.current && progressRef.current > 0) {
+      // Spring back to zero
+      velocityRef.current = 0;
+      rafRef.current = requestAnimationFrame(animateSpringBack);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+      }
+    };
+  }, []);
+
+  return (
+    <button
+      onMouseDown={startHold}
+      onMouseUp={stopHold}
+      onMouseLeave={stopHold}
+      onTouchStart={startHold}
+      onTouchEnd={stopHold}
+      onTouchCancel={stopHold}
+      className="relative w-full py-2 text-xs font-bold uppercase rounded-full overflow-hidden border border-[var(--color-accent)] select-none touch-none"
+    >
+      {/* Base label (accent text) */}
+      <span className="text-[var(--color-accent)]">
+        {label}
+      </span>
+      
+      {/* Fill with rounded right edge */}
+      <div 
+        className="absolute top-0 left-0 bottom-0 bg-[var(--color-accent)] rounded-full"
+        style={{ width: `${progress}%` }}
+      />
+      
+      {/* Inverted text layer, clipped by progress */}
+      <div
+        className="absolute inset-0 flex items-center justify-center overflow-hidden"
+        style={{ clipPath: `inset(0 ${100 - progress}% 0 0)` }}
+      >
+        <span className="text-[var(--color-bg)]">
+          {label}
+        </span>
+      </div>
+    </button>
   );
 }
 

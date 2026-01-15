@@ -86,6 +86,7 @@ export default function IOUDetail() {
     const text = `I owe ${toName}${iou.description ? `: ${iou.description}` : ""}`;
     const url = `${window.location.origin}/share/${iou.share_token}`;
 
+    // Native share includes text for SMS/messaging apps
     const shareData = {
       title: "IOU",
       text,

@@ -11,7 +11,7 @@ const ibmPlexMono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   title: "👁️🅾️🐑",
-  description: "Track favors between friends",
+  description: "Favors between friends",
 };
 
 export default function RootLayout({

@@ -127,7 +127,7 @@ export default function Home() {
           <Logo />
         </h1>
         <p className="text-[var(--color-text-muted)] text-sm mt-2">
-          Track favors between friends.
+          Favors between friends.
         </p>
       </header>
 

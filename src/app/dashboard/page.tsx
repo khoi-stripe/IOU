@@ -98,6 +98,7 @@ export default function Dashboard() {
 
     const url = `${window.location.origin}/share/${iou.share_token}`;
 
+    // Native share includes text for SMS/messaging apps
     const shareData = {
       title: "IOU",
       text,
@@ -207,7 +208,7 @@ export default function Dashboard() {
               }`}
             >
               <span className="inline-block w-2.5 h-2.5 rounded-full border border-current" />
-              PENDING
+              OUTSTANDING
             </button>
             <button
               onClick={() => setFilter("repaid")}

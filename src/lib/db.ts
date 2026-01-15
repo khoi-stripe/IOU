@@ -63,7 +63,7 @@ export async function createUser(phone: string, displayName: string, pin: string
   const supabase = getSupabase();
   
   // Check if phone already exists
-  const exists = await checkPhoneExists(phone);
+  const { exists } = await checkPhoneExists(phone);
   if (exists) {
     throw new Error("Phone number already registered");
   }

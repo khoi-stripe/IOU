@@ -32,24 +32,27 @@ export default function BalanceModal({ oweCount, owedCount, onClose }: BalanceMo
   const total = oweCount + owedCount;
   const maxRadius = 150; // max radius in pixels
 
+  // Check if it's a 1:1 ratio (or close to it)
+  const isBalanced = oweCount > 0 && owedCount > 0 && oweCount === owedCount;
+
   // Calculate circle sizes proportionally
   let blackRadius = 0;
   let whiteRadius = 0;
 
-  if (total > 0) {
+  if (total > 0 && !isBalanced) {
     // The larger count gets the max radius, smaller is proportional
     if (owedCount >= oweCount) {
       blackRadius = maxRadius;
-      whiteRadius = total > 0 ? (oweCount / owedCount) * maxRadius : 0;
+      whiteRadius = (oweCount / owedCount) * maxRadius;
     } else {
       whiteRadius = maxRadius;
-      blackRadius = total > 0 ? (owedCount / oweCount) * maxRadius : 0;
+      blackRadius = (owedCount / oweCount) * maxRadius;
     }
   }
 
   // Ensure minimum visible size if count > 0
-  if (oweCount > 0 && whiteRadius < 20) whiteRadius = 20;
-  if (owedCount > 0 && blackRadius < 20) blackRadius = 20;
+  if (oweCount > 0 && whiteRadius < 20 && !isBalanced) whiteRadius = 20;
+  if (owedCount > 0 && blackRadius < 20 && !isBalanced) blackRadius = 20;
 
   return (
     <div className="fixed inset-0 z-50 bg-[var(--color-bg)] flex flex-col">
@@ -67,26 +70,75 @@ export default function BalanceModal({ oweCount, owedCount, onClose }: BalanceMo
       {/* Visualization */}
       <div className="flex-1 flex items-center justify-center">
         <div className="relative flex items-center justify-center">
-          {/* Black circle - what you are owed */}
-          {owedCount > 0 && (
+          {/* Balanced state - half moon */}
+          {isBalanced && (
             <div
-              className="bg-[var(--color-accent)] rounded-full absolute"
+              className="rounded-full overflow-hidden border-2 border-[var(--color-accent)]"
               style={{
-                width: blackRadius * 2,
-                height: blackRadius * 2,
+                width: maxRadius * 2,
+                height: maxRadius * 2,
               }}
-            />
+            >
+              {/* Left half - white (owe) */}
+              <div 
+                className="absolute top-0 left-0 h-full w-1/2 bg-[var(--color-bg)]"
+              />
+              {/* Right half - black (owed) */}
+              <div 
+                className="absolute top-0 right-0 h-full w-1/2 bg-[var(--color-accent)]"
+              />
+            </div>
           )}
-          
-          {/* White circle - what you owe */}
-          {oweCount > 0 && (
-            <div
-              className="bg-[var(--color-bg)] border-2 border-[var(--color-accent)] rounded-full absolute"
-              style={{
-                width: whiteRadius * 2,
-                height: whiteRadius * 2,
-              }}
-            />
+
+          {/* Normal state - nested circles */}
+          {!isBalanced && whiteRadius >= blackRadius && (
+            <>
+              {/* White circle (larger) - what you owe */}
+              {oweCount > 0 && (
+                <div
+                  className="bg-[var(--color-bg)] border-2 border-[var(--color-accent)] rounded-full absolute"
+                  style={{
+                    width: whiteRadius * 2,
+                    height: whiteRadius * 2,
+                  }}
+                />
+              )}
+              {/* Black circle (smaller) - what you are owed - on top */}
+              {owedCount > 0 && (
+                <div
+                  className="bg-[var(--color-accent)] rounded-full absolute"
+                  style={{
+                    width: blackRadius * 2,
+                    height: blackRadius * 2,
+                  }}
+                />
+              )}
+            </>
+          )}
+
+          {!isBalanced && blackRadius > whiteRadius && (
+            <>
+              {/* Black circle (larger) - what you are owed */}
+              {owedCount > 0 && (
+                <div
+                  className="bg-[var(--color-accent)] rounded-full absolute"
+                  style={{
+                    width: blackRadius * 2,
+                    height: blackRadius * 2,
+                  }}
+                />
+              )}
+              {/* White circle (smaller) - what you owe - on top */}
+              {oweCount > 0 && (
+                <div
+                  className="bg-[var(--color-bg)] border-2 border-[var(--color-accent)] rounded-full absolute"
+                  style={{
+                    width: whiteRadius * 2,
+                    height: whiteRadius * 2,
+                  }}
+                />
+              )}
+            </>
           )}
 
           {/* Empty state */}

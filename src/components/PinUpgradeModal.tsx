@@ -3,15 +3,11 @@
 import { useState } from "react";
 
 interface PinUpgradeModalProps {
-  currentPin: string;
   onUpgrade: (newPin: string) => Promise<boolean>;
-  onSkip: () => void;
 }
 
 export default function PinUpgradeModal({
-  currentPin,
   onUpgrade,
-  onSkip,
 }: PinUpgradeModalProps) {
   const [newPin, setNewPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
@@ -111,13 +107,6 @@ export default function PinUpgradeModal({
             {loading ? "..." : "Upgrade PIN"}
           </button>
 
-          <button
-            type="button"
-            onClick={onSkip}
-            className="w-full py-2 text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
-          >
-            Skip for now
-          </button>
         </form>
       </div>
     </div>

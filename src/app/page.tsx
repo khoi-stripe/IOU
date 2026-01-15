@@ -151,11 +151,6 @@ export default function Home() {
     }
   }
 
-  function handleSkipUpgrade() {
-    setShowUpgradeModal(false);
-    router.push("/dashboard");
-  }
-
   function handleBack() {
     setStep("phone");
     setPin("");
@@ -184,11 +179,7 @@ export default function Home() {
     <div className="h-dvh flex flex-col px-4">
       {/* PIN Upgrade Modal */}
       {showUpgradeModal && (
-        <PinUpgradeModal
-          currentPin={currentPinForUpgrade}
-          onUpgrade={handlePinUpgrade}
-          onSkip={handleSkipUpgrade}
-        />
+        <PinUpgradeModal onUpgrade={handlePinUpgrade} />
       )}
 
       {/* Header - fixed at top */}
@@ -258,9 +249,6 @@ export default function Home() {
                 required
                 className={pinInputClass}
               />
-              <p className="text-xs text-[var(--color-text-muted)] mt-1 text-center">
-                Enter your 4 or 6 digit PIN
-              </p>
             </div>
 
             {error && <p className="text-sm text-red-500">{error}</p>}

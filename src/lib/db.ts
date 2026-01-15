@@ -134,6 +134,41 @@ export async function setUserPin(phone: string, pin: string): Promise<User | nul
   return data as User;
 }
 
+// Upgrade user's PIN (verify old PIN, set new PIN)
+export async function upgradeUserPin(
+  userId: string,
+  currentPin: string,
+  newPin: string
+): Promise<boolean> {
+  const supabase = getSupabase();
+
+  // Get user's current PIN hash
+  const { data: user } = await supabase
+    .from("iou_users")
+    .select("pin_hash")
+    .eq("id", userId)
+    .single();
+
+  if (!user || !user.pin_hash) {
+    return false;
+  }
+
+  // Verify current PIN
+  const isValid = await bcrypt.compare(currentPin, user.pin_hash);
+  if (!isValid) {
+    return false;
+  }
+
+  // Hash and set new PIN
+  const newPinHash = await bcrypt.hash(newPin, 10);
+  const { error } = await supabase
+    .from("iou_users")
+    .update({ pin_hash: newPinHash })
+    .eq("id", userId);
+
+  return !error;
+}
+
 // Link IOUs by phone to a user ID
 async function linkIOUsToUser(phone: string, userId: string): Promise<void> {
   const supabase = getSupabase();

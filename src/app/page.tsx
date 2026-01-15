@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Logo from "@/components/Logo";
+import PinUpgradeModal from "@/components/PinUpgradeModal";
 
 type Step = "phone" | "signup" | "login" | "setpin";
 
@@ -19,6 +20,10 @@ export default function Home() {
   const [confirmPin, setConfirmPin] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // PIN upgrade modal state
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [currentPinForUpgrade, setCurrentPinForUpgrade] = useState("");
 
   // Focus appropriate input when step changes
   useEffect(() => {
@@ -48,15 +53,21 @@ export default function Home() {
         body: JSON.stringify({ phone }),
       });
 
+      if (res.status === 429) {
+        const data = await res.json();
+        setError(data.error);
+        return;
+      }
+
       if (!res.ok) {
         throw new Error("Failed to check phone");
       }
 
-      const { exists, hasPin } = await res.json();
+      const { action, needsPin } = await res.json();
 
-      if (!exists) {
+      if (action === "signup") {
         setStep("signup");
-      } else if (!hasPin) {
+      } else if (needsPin) {
         setStep("setpin");
       } else {
         setStep("login");
@@ -102,12 +113,47 @@ export default function Home() {
         throw new Error(data.error || "Failed to authenticate");
       }
 
-      router.push("/dashboard");
+      const data = await res.json();
+
+      // Check if user needs to upgrade their PIN
+      if (data.needsPinUpgrade) {
+        setCurrentPinForUpgrade(pin);
+        setShowUpgradeModal(true);
+      } else {
+        router.push("/dashboard");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handlePinUpgrade(newPin: string): Promise<boolean> {
+    try {
+      const res = await fetch("/api/auth/upgrade-pin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          currentPin: currentPinForUpgrade,
+          newPin,
+        }),
+      });
+
+      if (!res.ok) {
+        return false;
+      }
+
+      router.push("/dashboard");
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  function handleSkipUpgrade() {
+    setShowUpgradeModal(false);
+    router.push("/dashboard");
   }
 
   function handleBack() {
@@ -117,6 +163,11 @@ export default function Home() {
     setName("");
     setError("");
   }
+
+  // PIN length depends on step: 6 for new, 4-6 for login
+  const isLogin = step === "login";
+  const pinLength = isLogin ? 6 : 6; // Max length for input
+  const minPinLength = isLogin ? 4 : 6; // Min valid length
 
   // Shared styles
   const labelClass = "block text-xs uppercase mb-2 font-medium";
@@ -131,6 +182,15 @@ export default function Home() {
 
   return (
     <div className="h-dvh flex flex-col px-4">
+      {/* PIN Upgrade Modal */}
+      {showUpgradeModal && (
+        <PinUpgradeModal
+          currentPin={currentPinForUpgrade}
+          onUpgrade={handlePinUpgrade}
+          onSkip={handleSkipUpgrade}
+        />
+      )}
+
       {/* Header - fixed at top */}
       <header className="pt-8 pb-4 text-center shrink-0 bg-[var(--color-bg)]">
         <h1 className="text-2xl">
@@ -166,7 +226,11 @@ export default function Home() {
 
             {error && <p className="text-sm text-red-500">{error}</p>}
 
-            <button type="submit" disabled={loading} className={primaryButtonClass + " w-full"}>
+            <button
+              type="submit"
+              disabled={loading}
+              className={primaryButtonClass + " w-full"}
+            >
               {loading ? "..." : "Continue"}
             </button>
           </form>
@@ -184,25 +248,34 @@ export default function Home() {
                 id="loginPin"
                 type="password"
                 inputMode="numeric"
-                pattern="\d{4}"
-                maxLength={4}
+                pattern="\d{4,6}"
+                maxLength={pinLength}
                 value={pin}
-                onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                placeholder="••••"
+                onChange={(e) =>
+                  setPin(e.target.value.replace(/\D/g, "").slice(0, pinLength))
+                }
+                placeholder="••••••"
                 required
                 className={pinInputClass}
               />
+              <p className="text-xs text-[var(--color-text-muted)] mt-1 text-center">
+                Enter your 4 or 6 digit PIN
+              </p>
             </div>
 
             {error && <p className="text-sm text-red-500">{error}</p>}
 
             <div className="flex gap-3">
-              <button type="button" onClick={handleBack} className={secondaryButtonClass}>
+              <button
+                type="button"
+                onClick={handleBack}
+                className={secondaryButtonClass}
+              >
                 Back
               </button>
               <button
                 type="submit"
-                disabled={loading || pin.length !== 4}
+                disabled={loading || pin.length < minPinLength}
                 className={primaryButtonClass}
               >
                 {loading ? "..." : "Log In"}
@@ -232,17 +305,19 @@ export default function Home() {
 
             <div>
               <label htmlFor="signupPin" className={labelClass}>
-                Create a 4-Digit PIN
+                Create a 6-Digit PIN
               </label>
               <input
                 id="signupPin"
                 type="password"
                 inputMode="numeric"
-                pattern="\d{4}"
-                maxLength={4}
+                pattern="\d{6}"
+                maxLength={6}
                 value={pin}
-                onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                placeholder="••••"
+                onChange={(e) =>
+                  setPin(e.target.value.replace(/\D/g, "").slice(0, 6))
+                }
+                placeholder="••••••"
                 required
                 className={pinInputClass}
               />
@@ -256,11 +331,13 @@ export default function Home() {
                 id="signupConfirmPin"
                 type="password"
                 inputMode="numeric"
-                pattern="\d{4}"
-                maxLength={4}
+                pattern="\d{6}"
+                maxLength={6}
                 value={confirmPin}
-                onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                placeholder="••••"
+                onChange={(e) =>
+                  setConfirmPin(e.target.value.replace(/\D/g, "").slice(0, 6))
+                }
+                placeholder="••••••"
                 required
                 className={pinInputClass}
               />
@@ -269,12 +346,21 @@ export default function Home() {
             {error && <p className="text-sm text-red-500">{error}</p>}
 
             <div className="flex gap-3">
-              <button type="button" onClick={handleBack} className={secondaryButtonClass}>
+              <button
+                type="button"
+                onClick={handleBack}
+                className={secondaryButtonClass}
+              >
                 Back
               </button>
               <button
                 type="submit"
-                disabled={loading || pin.length !== 4 || confirmPin.length !== 4 || !name}
+                disabled={
+                  loading ||
+                  pin.length !== 6 ||
+                  confirmPin.length !== 6 ||
+                  !name
+                }
                 className={primaryButtonClass}
               >
                 {loading ? "..." : "Create Account"}
@@ -288,18 +374,20 @@ export default function Home() {
           <form onSubmit={handleAuthSubmit} className="space-y-6">
             <div>
               <label htmlFor="setPin" className={labelClass}>
-                Create a 4-Digit PIN
+                Create a 6-Digit PIN
               </label>
               <input
                 ref={setPinRef}
                 id="setPin"
                 type="password"
                 inputMode="numeric"
-                pattern="\d{4}"
-                maxLength={4}
+                pattern="\d{6}"
+                maxLength={6}
                 value={pin}
-                onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                placeholder="••••"
+                onChange={(e) =>
+                  setPin(e.target.value.replace(/\D/g, "").slice(0, 6))
+                }
+                placeholder="••••••"
                 required
                 className={pinInputClass}
               />
@@ -313,11 +401,13 @@ export default function Home() {
                 id="setConfirmPin"
                 type="password"
                 inputMode="numeric"
-                pattern="\d{4}"
-                maxLength={4}
+                pattern="\d{6}"
+                maxLength={6}
                 value={confirmPin}
-                onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                placeholder="••••"
+                onChange={(e) =>
+                  setConfirmPin(e.target.value.replace(/\D/g, "").slice(0, 6))
+                }
+                placeholder="••••••"
                 required
                 className={pinInputClass}
               />
@@ -326,12 +416,16 @@ export default function Home() {
             {error && <p className="text-sm text-red-500">{error}</p>}
 
             <div className="flex gap-3">
-              <button type="button" onClick={handleBack} className={secondaryButtonClass}>
+              <button
+                type="button"
+                onClick={handleBack}
+                className={secondaryButtonClass}
+              >
                 Back
               </button>
               <button
                 type="submit"
-                disabled={loading || pin.length !== 4 || confirmPin.length !== 4}
+                disabled={loading || pin.length !== 6 || confirmPin.length !== 6}
                 className={primaryButtonClass}
               >
                 {loading ? "..." : "Set PIN"}

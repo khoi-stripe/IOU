@@ -8,8 +8,6 @@ export function getSupabase(): SupabaseClient {
     // Use service role key for server-side operations (bypasses RLS)
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    console.log("[SUPABASE] URL exists:", !!supabaseUrl, "KEY exists:", !!supabaseKey);
-
     if (!supabaseUrl || !supabaseKey) {
       throw new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables");
     }

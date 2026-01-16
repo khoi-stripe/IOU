@@ -148,13 +148,27 @@ function SwipeableToast({
   const isTop = index === total - 1;
   const shouldAnimate = isTop && (toast.isRevealed || total === 1);
 
+  // Click to dismiss (works on desktop and mobile)
+  const handleClick = () => {
+    if (!swiping && Math.abs(currentX.current) < 10) {
+      setDismissed(true);
+      if (elementRef.current) {
+        elementRef.current.style.transition = "opacity 0.15s, transform 0.15s";
+        elementRef.current.style.opacity = "0";
+        elementRef.current.style.transform = "scale(0.95)";
+      }
+      setTimeout(onDismiss, 150);
+    }
+  };
+
   return (
     <div
       ref={elementRef}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      className={`absolute bg-[var(--color-text)] text-[var(--color-bg)] px-4 py-2 text-xs font-medium rounded-[4px] select-none max-w-[280px] ${
+      onClick={handleClick}
+      className={`absolute bg-[var(--color-text)] text-[var(--color-bg)] px-4 py-2 text-xs font-medium rounded-[4px] select-none max-w-[280px] cursor-pointer ${
         dismissed ? "" : shouldAnimate ? "animate-toast-reveal" : isTop ? "animate-toast-in" : ""
       }`}
       style={{

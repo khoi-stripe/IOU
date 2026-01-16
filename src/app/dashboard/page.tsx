@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback, memo } from "react";
+import { Suspense, useEffect, useState, useRef, useCallback, memo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Loader from "@/components/Loader";
@@ -46,7 +46,7 @@ interface Notification {
 type Tab = "owe" | "owed";
 type Filter = "all" | "pending" | "repaid";
 
-export default function Dashboard() {
+function DashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { showToast } = useToast();
@@ -663,4 +663,13 @@ function formatPhone(phone: string): string {
     return `(${phone.slice(1, 4)}) ${phone.slice(4, 7)}-${phone.slice(7)}`;
   }
   return phone;
+}
+
+// Wrap in Suspense for useSearchParams
+export default function Dashboard() {
+  return (
+    <Suspense fallback={<Loader className="h-dvh" />}>
+      <DashboardContent />
+    </Suspense>
+  );
 }

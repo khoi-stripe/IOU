@@ -268,7 +268,10 @@ export default function Dashboard() {
         {/* Tabs */}
         <div className="flex gap-2 shrink-0">
           <button
-            onClick={() => setActiveTab("owe")}
+            onClick={() => {
+              setActiveTab("owe");
+              scrollContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+            }}
             className={`flex-1 py-4 px-4 text-left transition-colors rounded-t ${
               activeTab === "owe"
                 ? "border-t border-l border-r border-[#808080] bg-[var(--color-bg)] relative z-10"
@@ -282,7 +285,10 @@ export default function Dashboard() {
             </div>
           </button>
           <button
-            onClick={() => setActiveTab("owed")}
+            onClick={() => {
+              setActiveTab("owed");
+              scrollContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+            }}
             className={`flex-1 py-4 px-4 text-left transition-colors rounded-t ${
               activeTab === "owed"
                 ? "border-t border-l border-r border-[#808080] bg-[var(--color-bg)] relative z-10"
@@ -299,42 +305,44 @@ export default function Dashboard() {
 
         {/* Content Container */}
         <div className="border border-[#808080] flex flex-col flex-1 min-h-0 rounded-b">
-          {/* Filters */}
-          <div className="flex gap-3 text-xs pt-4 px-4 bg-[var(--color-bg)] shrink-0">
-            <button
-              onClick={() => setFilter("all")}
-              className={`transition-colors flex items-center gap-1.5 pb-1 text-[var(--color-text)] ${
-                filter === "all" ? "border-b border-current" : ""
-              }`}
-            >
-              <span 
-                className="inline-block w-2.5 h-2.5 rounded-full border border-current"
-                style={{ background: "linear-gradient(to right, currentColor 50%, transparent 50%)" }}
-              />
-              ALL
-            </button>
-            <button
-              onClick={() => setFilter("pending")}
-              className={`transition-colors flex items-center gap-1.5 pb-1 text-[var(--color-text)] ${
-                filter === "pending" ? "border-b border-current" : ""
-              }`}
-            >
-              <span className="inline-block w-2.5 h-2.5 rounded-full border border-current" />
-              OUTSTANDING
-            </button>
-            <button
-              onClick={() => setFilter("repaid")}
-              className={`transition-colors flex items-center gap-1.5 pb-1 text-[var(--color-text)] ${
-                filter === "repaid" ? "border-b border-current" : ""
-              }`}
-            >
-              <span className="inline-block w-2.5 h-2.5 rounded-full bg-current" />
-              REPAID
-            </button>
-          </div>
+          {/* Scrollable content (filters + list) */}
+          <div ref={scrollContainerRef} className="overflow-y-auto flex-1 min-h-0 mt-4">
+            {/* Filters */}
+            <div className="flex gap-3 text-xs px-4 bg-[var(--color-bg)]">
+              <button
+                onClick={() => setFilter("all")}
+                className={`transition-colors flex items-center gap-1.5 pb-1 text-[var(--color-text)] ${
+                  filter === "all" ? "border-b border-current" : ""
+                }`}
+              >
+                <span 
+                  className="inline-block w-2.5 h-2.5 rounded-full border border-current"
+                  style={{ background: "linear-gradient(to right, currentColor 50%, transparent 50%)" }}
+                />
+                ALL
+              </button>
+              <button
+                onClick={() => setFilter("pending")}
+                className={`transition-colors flex items-center gap-1.5 pb-1 text-[var(--color-text)] ${
+                  filter === "pending" ? "border-b border-current" : ""
+                }`}
+              >
+                <span className="inline-block w-2.5 h-2.5 rounded-full border border-current" />
+                OUTSTANDING
+              </button>
+              <button
+                onClick={() => setFilter("repaid")}
+                className={`transition-colors flex items-center gap-1.5 pb-1 text-[var(--color-text)] ${
+                  filter === "repaid" ? "border-b border-current" : ""
+                }`}
+              >
+                <span className="inline-block w-2.5 h-2.5 rounded-full bg-current" />
+                REPAID
+              </button>
+            </div>
 
-          {/* List - scrollable */}
-          <div ref={scrollContainerRef} className="space-y-3 p-4 overflow-y-auto flex-1 min-h-0">
+            {/* List */}
+            <div className="space-y-3 p-4">
             {filtered.length === 0 ? (
               <p className="text-center py-12 text-[var(--color-text-muted)] text-sm">
                 No IOUs yet
@@ -358,6 +366,7 @@ export default function Dashboard() {
                 )}
               </>
             )}
+          </div>
           </div>
         </div>
       </div>

@@ -59,6 +59,7 @@ export default function Dashboard() {
   const [filter, setFilter] = useState<Filter>("all");
   const [showBalance, setShowBalance] = useState(false);
   const [collapsingId, setCollapsingId] = useState<string | null>(null);
+  const [pendingNotifications, setPendingNotifications] = useState<Notification[]>([]);
   const notificationsShownRef = useRef(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -67,7 +68,33 @@ export default function Dashboard() {
     router.push("/");
   }
 
-  // Fetch and display notifications on mount
+  // Scroll to a specific IOU, switching tabs if needed
+  const scrollToIOU = useCallback((iouId: string) => {
+    // Check if IOU is in owed list (user is owed)
+    const inOwed = owed.some(iou => iou.id === iouId);
+    const inOwing = owing.some(iou => iou.id === iouId);
+    
+    if (inOwed && activeTab !== "owed") {
+      setActiveTab("owed");
+      // Wait for tab switch to render, then scroll
+      setTimeout(() => {
+        const element = document.getElementById(`iou-${iouId}`);
+        element?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 100);
+    } else if (inOwing && activeTab !== "owe") {
+      setActiveTab("owe");
+      setTimeout(() => {
+        const element = document.getElementById(`iou-${iouId}`);
+        element?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 100);
+    } else {
+      // Already on correct tab
+      const element = document.getElementById(`iou-${iouId}`);
+      element?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [owed, owing, activeTab]);
+
+  // Fetch notifications on mount (store them, show after IOUs load)
   useEffect(() => {
     async function fetchNotifications() {
       if (notificationsShownRef.current) return;
@@ -78,28 +105,14 @@ export default function Dashboard() {
         if (!res.ok) return;
         
         const { notifications } = await res.json() as { notifications: Notification[] };
-        
-        // Show each notification as a toast
-        for (const notification of notifications) {
-          showToast(notification.message, {
-            persistent: true,
-            onDismiss: async () => {
-              // Acknowledge when dismissed
-              await fetch("/api/notifications/acknowledge", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id: notification.id }),
-              });
-            },
-          });
-        }
+        setPendingNotifications(notifications);
       } catch (err) {
         console.error("Failed to fetch notifications:", err);
       }
     }
 
     fetchNotifications();
-  }, [showToast]);
+  }, []);
 
   const fetchData = useCallback(async (append = false) => {
     try {
@@ -137,6 +150,28 @@ export default function Dashboard() {
     fetchData();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Show notifications as toasts once IOUs are loaded
+  useEffect(() => {
+    if (loading || pendingNotifications.length === 0) return;
+    
+    for (const notification of pendingNotifications) {
+      showToast(notification.message, {
+        persistent: true,
+        onTap: () => scrollToIOU(notification.iou_id),
+        onDismiss: async () => {
+          await fetch("/api/notifications/acknowledge", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: notification.id }),
+          });
+        },
+      });
+    }
+    
+    // Clear pending notifications after showing
+    setPendingNotifications([]);
+  }, [loading, pendingNotifications, showToast, scrollToIOU]);
 
   const loadMore = useCallback(() => {
     const hasMore = activeTab === "owe" ? hasMoreOwed : hasMoreOwing;
@@ -383,7 +418,7 @@ const IOUCard = memo(function IOUCard({
   const isPending = iou.status === "pending";
 
   return (
-    <div className="p-4 bg-[var(--color-bg-secondary)] space-y-3 rounded-[4px]">
+    <div id={`iou-${iou.id}`} className="p-4 bg-[var(--color-bg-secondary)] space-y-3 rounded-[4px]">
       {/* Top row: status + date + share icon */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">

@@ -7,10 +7,17 @@ interface Toast {
   message: string;
   persistent?: boolean;
   onDismiss?: () => void;
+  onTap?: () => void;
+}
+
+interface ToastOptions {
+  persistent?: boolean;
+  onDismiss?: () => void;
+  onTap?: () => void;
 }
 
 interface ToastContextType {
-  showToast: (message: string, options?: { persistent?: boolean; onDismiss?: () => void }) => number;
+  showToast: (message: string, options?: ToastOptions) => number;
   dismissToast: (id: number) => void;
 }
 
@@ -37,9 +44,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const showToast = useCallback((message: string, options?: { persistent?: boolean; onDismiss?: () => void }) => {
+  const showToast = useCallback((message: string, options?: ToastOptions) => {
     const id = Date.now() + Math.random();
-    setToasts((prev) => [...prev, { id, message, persistent: options?.persistent, onDismiss: options?.onDismiss }]);
+    setToasts((prev) => [...prev, { id, message, persistent: options?.persistent, onDismiss: options?.onDismiss, onTap: options?.onTap }]);
 
     // Auto-dismiss after 3 seconds (unless persistent)
     if (!options?.persistent) {
@@ -83,20 +90,32 @@ function SwipeableToast({
   onDismiss: () => void;
 }) {
   const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
   const currentX = useRef(0);
+  const hasMoved = useRef(false);
   const elementRef = useRef<HTMLDivElement>(null);
   const [swiping, setSwiping] = useState(false);
   const [dismissed, setDismissed] = useState(false);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
     currentX.current = 0;
+    hasMoved.current = false;
     setSwiping(true);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!swiping) return;
-    currentX.current = e.touches[0].clientX - touchStartX.current;
+    const deltaX = e.touches[0].clientX - touchStartX.current;
+    const deltaY = e.touches[0].clientY - touchStartY.current;
+    
+    // Only count as move if moved more than 10px
+    if (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10) {
+      hasMoved.current = true;
+    }
+    
+    currentX.current = deltaX;
     if (elementRef.current) {
       elementRef.current.style.transform = `translateX(${currentX.current}px)`;
       elementRef.current.style.opacity = `${1 - Math.abs(currentX.current) / 200}`;
@@ -115,17 +134,21 @@ function SwipeableToast({
         elementRef.current.style.opacity = "0";
       }
       setTimeout(onDismiss, 150);
+    } else if (!hasMoved.current && toast.onTap) {
+      // Tap (no significant movement)
+      toast.onTap();
+      onDismiss();
     } else {
-      // Snap back
+      // Snap back with spring animation
       if (elementRef.current) {
-        elementRef.current.style.transition = "transform 0.2s, opacity 0.2s";
+        elementRef.current.style.transition = "transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s";
         elementRef.current.style.transform = "translateX(0)";
         elementRef.current.style.opacity = "1";
         setTimeout(() => {
           if (elementRef.current) {
             elementRef.current.style.transition = "";
           }
-        }, 200);
+        }, 500);
       }
     }
   };
@@ -139,7 +162,7 @@ function SwipeableToast({
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      className={`absolute bg-[var(--color-text)] text-[var(--color-bg)] px-4 py-2 text-sm font-medium rounded-full cursor-grab active:cursor-grabbing select-none max-w-[280px] truncate ${
+      className={`absolute bg-[var(--color-text)] text-[var(--color-bg)] px-4 py-2 text-xs font-medium rounded-2xl select-none max-w-[280px] text-center ${
         dismissed ? "" : "animate-toast-in"
       }`}
       style={{
@@ -147,9 +170,13 @@ function SwipeableToast({
         zIndex: index,
         opacity: isTop ? 1 : 0.3,
         transform: isTop ? "scale(1)" : `scale(${0.95 - (total - 1 - index) * 0.05})`,
+        display: "-webkit-box",
+        WebkitLineClamp: 2,
+        WebkitBoxOrient: "vertical",
+        overflow: "hidden",
       }}
     >
-      {total > 1 && <span className="opacity-60 mr-3">{index + 1}/{total}</span>}
+      {total > 1 && <span className="opacity-60 mr-2">{index + 1}/{total}</span>}
       {toast.message}
     </div>
   );

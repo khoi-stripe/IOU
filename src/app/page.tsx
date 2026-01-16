@@ -25,20 +25,17 @@ export default function Home() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [currentPinForUpgrade, setCurrentPinForUpgrade] = useState("");
 
-  // Focus appropriate input when step changes
+  // Focus appropriate input when step changes - immediate since all inputs are in DOM
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (step === "phone") {
-        phoneInputRef.current?.focus();
-      } else if (step === "login") {
-        loginPinRef.current?.focus();
-      } else if (step === "signup") {
-        signupNameRef.current?.focus();
-      } else if (step === "setpin") {
-        setPinRef.current?.focus();
-      }
-    }, 50);
-    return () => clearTimeout(timer);
+    if (step === "phone") {
+      phoneInputRef.current?.focus();
+    } else if (step === "login") {
+      loginPinRef.current?.focus();
+    } else if (step === "signup") {
+      signupNameRef.current?.focus();
+    } else if (step === "setpin") {
+      setPinRef.current?.focus();
+    }
   }, [step]);
 
   async function handlePhoneSubmit(e: React.FormEvent) {
@@ -188,235 +185,239 @@ export default function Home() {
         </p>
       </header>
 
-      {/* Form area */}
+      {/* Form area - all forms kept in DOM, hidden when inactive */}
       <div className="flex-1 flex flex-col justify-end pb-8">
         {/* Phone step */}
-        {step === "phone" && (
-          <form onSubmit={handlePhoneSubmit} className="space-y-6">
-            <div>
-              <label htmlFor="phone" className={labelClass}>
-                Phone Number
-              </label>
-              <input
-                ref={phoneInputRef}
-                id="phone"
-                type="tel"
-                inputMode="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="555-123-4567"
-                required
-                autoFocus
-                className={inputClass}
-              />
-            </div>
+        <form 
+          onSubmit={handlePhoneSubmit} 
+          className={`space-y-6 ${step !== "phone" ? "hidden" : ""}`}
+        >
+          <div>
+            <label htmlFor="phone" className={labelClass}>
+              Phone Number
+            </label>
+            <input
+              ref={phoneInputRef}
+              id="phone"
+              type="tel"
+              inputMode="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="555-123-4567"
+              required
+              autoFocus
+              className={inputClass}
+            />
+          </div>
 
-            {error && <p className="text-sm text-red-500">{error}</p>}
+          {step === "phone" && error && <p className="text-sm text-red-500">{error}</p>}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className={primaryButtonClass + " w-full"}
-            >
-              {loading ? "..." : "Continue"}
-            </button>
-          </form>
-        )}
+          <button
+            type="submit"
+            disabled={loading}
+            className={primaryButtonClass + " w-full"}
+          >
+            {loading ? "..." : "Continue"}
+          </button>
+        </form>
 
         {/* Login step */}
-        {step === "login" && (
-          <form onSubmit={handleAuthSubmit} className="space-y-6">
-            <div>
-              <label htmlFor="loginPin" className={labelClass}>
-                PIN
-              </label>
-              <input
-                ref={loginPinRef}
-                id="loginPin"
-                type="password"
-                inputMode="numeric"
-                pattern="\d{4,6}"
-                maxLength={pinLength}
-                value={pin}
-                onChange={(e) =>
-                  setPin(e.target.value.replace(/\D/g, "").slice(0, pinLength))
-                }
-                placeholder="••••••"
-                required
-                className={pinInputClass}
-              />
-            </div>
+        <form 
+          onSubmit={handleAuthSubmit} 
+          className={`space-y-6 ${step !== "login" ? "hidden" : ""}`}
+        >
+          <div>
+            <label htmlFor="loginPin" className={labelClass}>
+              PIN
+            </label>
+            <input
+              ref={loginPinRef}
+              id="loginPin"
+              type="password"
+              inputMode="numeric"
+              pattern="\d{4,6}"
+              maxLength={pinLength}
+              value={pin}
+              onChange={(e) =>
+                setPin(e.target.value.replace(/\D/g, "").slice(0, pinLength))
+              }
+              placeholder="••••••"
+              required
+              className={pinInputClass}
+            />
+          </div>
 
-            {error && <p className="text-sm text-red-500">{error}</p>}
+          {step === "login" && error && <p className="text-sm text-red-500">{error}</p>}
 
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={handleBack}
-                className={secondaryButtonClass}
-              >
-                Back
-              </button>
-              <button
-                type="submit"
-                disabled={loading || pin.length < minPinLength}
-                className={primaryButtonClass}
-              >
-                {loading ? "..." : "Log In"}
-              </button>
-            </div>
-          </form>
-        )}
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={handleBack}
+              className={secondaryButtonClass}
+            >
+              Back
+            </button>
+            <button
+              type="submit"
+              disabled={loading || pin.length < minPinLength}
+              className={primaryButtonClass}
+            >
+              {loading ? "..." : "Log In"}
+            </button>
+          </div>
+        </form>
 
         {/* Signup step */}
-        {step === "signup" && (
-          <form onSubmit={handleAuthSubmit} className="space-y-6">
-            <div>
-              <label htmlFor="name" className={labelClass}>
-                Your Name
-              </label>
-              <input
-                ref={signupNameRef}
-                id="name"
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Bruce"
-                required
-                className={inputClass}
-              />
-            </div>
+        <form 
+          onSubmit={handleAuthSubmit} 
+          className={`space-y-6 ${step !== "signup" ? "hidden" : ""}`}
+        >
+          <div>
+            <label htmlFor="name" className={labelClass}>
+              Your Name
+            </label>
+            <input
+              ref={signupNameRef}
+              id="name"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Bruce"
+              required
+              className={inputClass}
+            />
+          </div>
 
-            <div>
-              <label htmlFor="signupPin" className={labelClass}>
-                Create a 6-Digit PIN
-              </label>
-              <input
-                id="signupPin"
-                type="password"
-                inputMode="numeric"
-                pattern="\d{6}"
-                maxLength={6}
-                value={pin}
-                onChange={(e) =>
-                  setPin(e.target.value.replace(/\D/g, "").slice(0, 6))
-                }
-                placeholder="••••••"
-                required
-                className={pinInputClass}
-              />
-            </div>
+          <div>
+            <label htmlFor="signupPin" className={labelClass}>
+              Create a 6-Digit PIN
+            </label>
+            <input
+              id="signupPin"
+              type="password"
+              inputMode="numeric"
+              pattern="\d{6}"
+              maxLength={6}
+              value={pin}
+              onChange={(e) =>
+                setPin(e.target.value.replace(/\D/g, "").slice(0, 6))
+              }
+              placeholder="••••••"
+              required
+              className={pinInputClass}
+            />
+          </div>
 
-            <div>
-              <label htmlFor="signupConfirmPin" className={labelClass}>
-                Confirm PIN
-              </label>
-              <input
-                id="signupConfirmPin"
-                type="password"
-                inputMode="numeric"
-                pattern="\d{6}"
-                maxLength={6}
-                value={confirmPin}
-                onChange={(e) =>
-                  setConfirmPin(e.target.value.replace(/\D/g, "").slice(0, 6))
-                }
-                placeholder="••••••"
-                required
-                className={pinInputClass}
-              />
-            </div>
+          <div>
+            <label htmlFor="signupConfirmPin" className={labelClass}>
+              Confirm PIN
+            </label>
+            <input
+              id="signupConfirmPin"
+              type="password"
+              inputMode="numeric"
+              pattern="\d{6}"
+              maxLength={6}
+              value={confirmPin}
+              onChange={(e) =>
+                setConfirmPin(e.target.value.replace(/\D/g, "").slice(0, 6))
+              }
+              placeholder="••••••"
+              required
+              className={pinInputClass}
+            />
+          </div>
 
-            {error && <p className="text-sm text-red-500">{error}</p>}
+          {step === "signup" && error && <p className="text-sm text-red-500">{error}</p>}
 
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={handleBack}
-                className={secondaryButtonClass}
-              >
-                Back
-              </button>
-              <button
-                type="submit"
-                disabled={
-                  loading ||
-                  pin.length !== 6 ||
-                  confirmPin.length !== 6 ||
-                  !name
-                }
-                className={primaryButtonClass}
-              >
-                {loading ? "..." : "Create Account"}
-              </button>
-            </div>
-          </form>
-        )}
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={handleBack}
+              className={secondaryButtonClass}
+            >
+              Back
+            </button>
+            <button
+              type="submit"
+              disabled={
+                loading ||
+                pin.length !== 6 ||
+                confirmPin.length !== 6 ||
+                !name
+              }
+              className={primaryButtonClass}
+            >
+              {loading ? "..." : "Create Account"}
+            </button>
+          </div>
+        </form>
 
         {/* Set PIN step */}
-        {step === "setpin" && (
-          <form onSubmit={handleAuthSubmit} className="space-y-6">
-            <div>
-              <label htmlFor="setPin" className={labelClass}>
-                Create a 6-Digit PIN
-              </label>
-              <input
-                ref={setPinRef}
-                id="setPin"
-                type="password"
-                inputMode="numeric"
-                pattern="\d{6}"
-                maxLength={6}
-                value={pin}
-                onChange={(e) =>
-                  setPin(e.target.value.replace(/\D/g, "").slice(0, 6))
-                }
-                placeholder="••••••"
-                required
-                className={pinInputClass}
-              />
-            </div>
+        <form 
+          onSubmit={handleAuthSubmit} 
+          className={`space-y-6 ${step !== "setpin" ? "hidden" : ""}`}
+        >
+          <div>
+            <label htmlFor="setPin" className={labelClass}>
+              Create a 6-Digit PIN
+            </label>
+            <input
+              ref={setPinRef}
+              id="setPin"
+              type="password"
+              inputMode="numeric"
+              pattern="\d{6}"
+              maxLength={6}
+              value={pin}
+              onChange={(e) =>
+                setPin(e.target.value.replace(/\D/g, "").slice(0, 6))
+              }
+              placeholder="••••••"
+              required
+              className={pinInputClass}
+            />
+          </div>
 
-            <div>
-              <label htmlFor="setConfirmPin" className={labelClass}>
-                Confirm PIN
-              </label>
-              <input
-                id="setConfirmPin"
-                type="password"
-                inputMode="numeric"
-                pattern="\d{6}"
-                maxLength={6}
-                value={confirmPin}
-                onChange={(e) =>
-                  setConfirmPin(e.target.value.replace(/\D/g, "").slice(0, 6))
-                }
-                placeholder="••••••"
-                required
-                className={pinInputClass}
-              />
-            </div>
+          <div>
+            <label htmlFor="setConfirmPin" className={labelClass}>
+              Confirm PIN
+            </label>
+            <input
+              id="setConfirmPin"
+              type="password"
+              inputMode="numeric"
+              pattern="\d{6}"
+              maxLength={6}
+              value={confirmPin}
+              onChange={(e) =>
+                setConfirmPin(e.target.value.replace(/\D/g, "").slice(0, 6))
+              }
+              placeholder="••••••"
+              required
+              className={pinInputClass}
+            />
+          </div>
 
-            {error && <p className="text-sm text-red-500">{error}</p>}
+          {step === "setpin" && error && <p className="text-sm text-red-500">{error}</p>}
 
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={handleBack}
-                className={secondaryButtonClass}
-              >
-                Back
-              </button>
-              <button
-                type="submit"
-                disabled={loading || pin.length !== 6 || confirmPin.length !== 6}
-                className={primaryButtonClass}
-              >
-                {loading ? "..." : "Set PIN"}
-              </button>
-            </div>
-          </form>
-        )}
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={handleBack}
+              className={secondaryButtonClass}
+            >
+              Back
+            </button>
+            <button
+              type="submit"
+              disabled={loading || pin.length !== 6 || confirmPin.length !== 6}
+              className={primaryButtonClass}
+            >
+              {loading ? "..." : "Set PIN"}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

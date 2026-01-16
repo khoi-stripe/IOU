@@ -131,7 +131,13 @@ export default function NewIOU() {
 
     // Determine recipient: either known user ID or name string
     const toUserId = selectedContact?.id || null;
-    const toName = !toUserId ? searchValue.trim() || null : null;
+    const toName = !toUserId ? searchValue.trim() : null;
+
+    // Name is required
+    if (!toUserId && !toName) {
+      setError("Please enter a recipient name");
+      return;
+    }
 
     setLoading(true);
 
@@ -232,7 +238,7 @@ export default function NewIOU() {
                 onChange={(e) => handleInputChange(e.target.value)}
                 onFocus={() => setShowDropdown(true)}
                 onBlur={handleInputBlur}
-                placeholder="Name (optional)"
+                placeholder="Name"
                 autoComplete="off"
                 className={inputClass}
               />

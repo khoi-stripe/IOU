@@ -174,29 +174,30 @@ export default function Dashboard() {
   }, [loadMore]);
 
   async function handleMarkRepaid(id: string) {
+    // Start collapse animation immediately (optimistic)
+    setCollapsingId(id);
+    
+    // Update locally after animation completes
+    setTimeout(() => {
+      setOwed(prev => prev.map(iou => 
+        iou.id === id ? { ...iou, status: "repaid" as const, repaid_at: new Date().toISOString() } : iou
+      ));
+      setOwing(prev => prev.map(iou => 
+        iou.id === id ? { ...iou, status: "repaid" as const, repaid_at: new Date().toISOString() } : iou
+      ));
+      setCollapsingId(null);
+    }, 300);
+    
+    // API call in background
     try {
-      const res = await fetch(`/api/ious/${id}`, {
+      await fetch(`/api/ious/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "repaid" }),
       });
-      if (res.ok) {
-        // Trigger collapse animation
-        setCollapsingId(id);
-        
-        // Update locally after animation completes
-        setTimeout(() => {
-          setOwed(prev => prev.map(iou => 
-            iou.id === id ? { ...iou, status: "repaid" as const, repaid_at: new Date().toISOString() } : iou
-          ));
-          setOwing(prev => prev.map(iou => 
-            iou.id === id ? { ...iou, status: "repaid" as const, repaid_at: new Date().toISOString() } : iou
-          ));
-          setCollapsingId(null);
-        }, 400);
-      }
     } catch (err) {
       console.error(err);
+      // Could revert optimistic update here if needed
     }
   }
 
@@ -496,13 +497,11 @@ function HoldToConfirmButton({
       confirmedRef.current = true;
       holdingRef.current = false;
       setConfirmed(true);
-      // Show confirmation, then exit animation, then callback
+      // Start exit animation after iris completes, call onConfirm immediately for smooth transition
       setTimeout(() => {
         setExiting(true);
-        setTimeout(() => {
-          onConfirm();
-        }, 300);
-      }, 600);
+        onConfirm(); // Call immediately so collapse starts while button is exiting
+      }, 500);
       return;
     }
     

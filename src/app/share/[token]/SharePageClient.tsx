@@ -102,8 +102,8 @@ export default function SharePageClient({ token }: Props) {
         return;
       }
       
-      // Redirect to dashboard after claiming
-      router.push("/dashboard");
+      // Redirect to dashboard "owed" tab (user is the one being owed)
+      router.push("/dashboard?tab=owed");
     } catch {
       setError("Something went wrong");
     } finally {
@@ -116,6 +116,14 @@ export default function SharePageClient({ token }: Props) {
     iou && 
     currentUser.id !== iou.from_user_id && 
     !iou.to_user_id;
+
+  // Debug logging
+  console.log("Share page debug:", {
+    currentUserId: currentUser?.id,
+    iouFromUserId: iou?.from_user_id,
+    iouToUserId: iou?.to_user_id,
+    canClaim,
+  });
 
   if (loading) {
     return <Loader className="h-dvh" />;

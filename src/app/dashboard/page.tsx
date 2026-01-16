@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback, memo } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Loader from "@/components/Loader";
 import Logo from "@/components/Logo";
@@ -48,6 +48,7 @@ type Filter = "all" | "pending" | "repaid";
 
 export default function Dashboard() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { showToast } = useToast();
   const [user, setUser] = useState<User | null>(null);
   const [owed, setOwed] = useState<IOU[]>([]);
@@ -56,7 +57,9 @@ export default function Dashboard() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMoreOwed, setHasMoreOwed] = useState(false);
   const [hasMoreOwing, setHasMoreOwing] = useState(false);
-  const [activeTab, setActiveTab] = useState<Tab>("owe");
+  // Initialize tab from URL param (for claim redirect)
+  const initialTab = searchParams.get("tab") === "owed" ? "owed" : "owe";
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab);
   const [filter, setFilter] = useState<Filter>("all");
   const [showBalance, setShowBalance] = useState(false);
   const [collapsingId, setCollapsingId] = useState<string | null>(null);

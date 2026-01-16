@@ -32,8 +32,12 @@ export default function Home() {
       sessionStorage.removeItem("pendingClaimIOUId");
       // Auto-claim the IOU
       try {
-        await fetch(`/api/ious/${pendingClaimIOUId}/claim`, { method: "POST" });
-        // Claim succeeded or failed - either way go to dashboard
+        const res = await fetch(`/api/ious/${pendingClaimIOUId}/claim`, { method: "POST" });
+        if (res.ok) {
+          // Claimed successfully - go to "owed" tab where the IOU appears
+          router.push("/dashboard?tab=owed");
+          return;
+        }
       } catch {
         // Silently fail - user can claim manually if needed
       }

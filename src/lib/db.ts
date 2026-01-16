@@ -551,6 +551,32 @@ export async function getContactsForUser(userId: string): Promise<Contact[]> {
     }
   }
 
+  // Enrich contacts that show as not registered - they may have registered since
+  const unregisteredPhones = Array.from(contactsMap.values())
+    .filter(c => !c.isRegistered)
+    .map(c => c.phone);
+  
+  if (unregisteredPhones.length > 0) {
+    // Look up users by phone number
+    const { data: registeredUsers } = await supabase
+      .from("iou_users")
+      .select("phone, display_name")
+      .in("phone", unregisteredPhones);
+    
+    if (registeredUsers && registeredUsers.length > 0) {
+      for (const regUser of registeredUsers) {
+        const normalizedPhone = normalizePhone(regUser.phone);
+        if (normalizedPhone && contactsMap.has(normalizedPhone)) {
+          contactsMap.set(normalizedPhone, {
+            phone: normalizedPhone,
+            displayName: regUser.display_name,
+            isRegistered: true,
+          });
+        }
+      }
+    }
+  }
+
   return Array.from(contactsMap.values());
 }
 

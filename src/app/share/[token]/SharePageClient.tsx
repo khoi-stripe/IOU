@@ -187,7 +187,7 @@ export default function SharePageClient({ token }: Props) {
         {canClaim ? (
           <>
             <p className="text-sm text-[var(--color-text-muted)]">
-              This IOU is for you! Claim it to add to your account.
+              Claim as <span className="font-medium text-[var(--color-text)]">{currentUser?.display_name}</span>
             </p>
             <button
               onClick={handleClaim}
@@ -195,6 +195,15 @@ export default function SharePageClient({ token }: Props) {
               className="w-full py-3 bg-[var(--color-accent)] text-[var(--color-bg)] text-center rounded-full hover:opacity-80 transition-opacity font-medium disabled:opacity-50"
             >
               {claiming ? "Claiming..." : "Claim This IOU"}
+            </button>
+            <button
+              onClick={async () => {
+                await fetch("/api/auth/logout", { method: "POST" });
+                setCurrentUser(null);
+              }}
+              className="text-xs text-[var(--color-text-muted)] underline hover:text-[var(--color-text)]"
+            >
+              Not you? Switch account
             </button>
           </>
         ) : currentUser ? (

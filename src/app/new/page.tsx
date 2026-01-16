@@ -325,24 +325,29 @@ export default function NewIOU() {
 
           {error && <p className="text-sm text-red-500">{error}</p>}
 
-          {/* Buttons */}
+          {/* Buttons - show "Create & Share" only for unknown users */}
           <div className="flex gap-3">
-            <button 
-              type="button" 
-              onClick={(e) => handleSubmit(e, false)} 
-              disabled={loading} 
-              className={secondaryButtonClass}
-            >
-              {loading ? "..." : "Create"}
-            </button>
-            <button 
-              type="button" 
-              onClick={(e) => handleSubmit(e, true)} 
-              disabled={loading} 
-              className={primaryButtonClass}
-            >
-              {loading ? "..." : "Create & Share"}
-            </button>
+            {selectedContact?.id ? (
+              // Known user - IOU goes directly to their feed
+              <button 
+                type="button" 
+                onClick={(e) => handleSubmit(e, false)} 
+                disabled={loading} 
+                className={primaryButtonClass + " w-full"}
+              >
+                {loading ? "..." : "Create"}
+              </button>
+            ) : (
+              // Unknown user - need to share for them to claim
+              <button 
+                type="button" 
+                onClick={(e) => handleSubmit(e, true)} 
+                disabled={loading} 
+                className={primaryButtonClass + " w-full"}
+              >
+                {loading ? "..." : "Create & Share"}
+              </button>
+            )}
           </div>
         </form>
       </div>

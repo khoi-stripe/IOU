@@ -173,11 +173,25 @@ export async function upgradeUserPin(
 // Link IOUs by phone to a user ID
 async function linkIOUsToUser(phone: string, userId: string): Promise<void> {
   const supabase = getSupabase();
-  await supabase
-    .from("iou_ious")
-    .update({ to_user_id: userId })
-    .eq("to_phone", phone)
-    .is("to_user_id", null);
+  const normalizedPhone = normalizePhone(phone);
+  
+  // Link IOUs matching the normalized phone
+  if (normalizedPhone) {
+    await supabase
+      .from("iou_ious")
+      .update({ to_user_id: userId })
+      .eq("to_phone", normalizedPhone)
+      .is("to_user_id", null);
+  }
+  
+  // Also try with country code prefix in case old IOUs weren't normalized
+  if (normalizedPhone && normalizedPhone.length === 10) {
+    await supabase
+      .from("iou_ious")
+      .update({ to_user_id: userId })
+      .eq("to_phone", "1" + normalizedPhone)
+      .is("to_user_id", null);
+  }
 }
 
 export async function getUserByPhone(phone: string): Promise<User | null> {
@@ -256,6 +270,44 @@ export async function createIOU(
   return iou;
 }
 
+// Helper to enrich IOUs that have to_phone but no to_user with user data if the user now exists
+async function enrichIOUsWithMissingUsers(ious: IOU[], supabase: ReturnType<typeof getSupabase>): Promise<IOU[]> {
+  // Find IOUs that have to_phone but no to_user
+  const phonesToLookup = ious
+    .filter(iou => iou.to_phone && !iou.to_user)
+    .map(iou => normalizePhone(iou.to_phone))
+    .filter((phone): phone is string => phone !== null);
+  
+  if (phonesToLookup.length === 0) return ious;
+  
+  // Look up users by phone
+  const { data: users } = await supabase
+    .from("iou_users")
+    .select("id, phone, display_name")
+    .in("phone", [...new Set(phonesToLookup)]);
+  
+  if (!users || users.length === 0) return ious;
+  
+  // Create a map of normalized phone -> user
+  const userByPhone = new Map(users.map(u => [u.phone, u]));
+  
+  // Enrich IOUs with user data
+  return ious.map(iou => {
+    if (iou.to_phone && !iou.to_user) {
+      const normalizedPhone = normalizePhone(iou.to_phone);
+      const user = normalizedPhone ? userByPhone.get(normalizedPhone) : null;
+      if (user) {
+        return {
+          ...iou,
+          to_user: { id: user.id, phone: user.phone, display_name: user.display_name } as User,
+          to_user_id: user.id, // Also set this so it gets linked
+        };
+      }
+    }
+    return iou;
+  });
+}
+
 export async function getIOUsByUser(
   userId: string,
   options?: { limit?: number; offset?: number }
@@ -312,9 +364,13 @@ export async function getIOUsByUser(
   );
   const paginatedOwing = allOwing.slice(offset, offset + limit);
 
+  // Post-process: for IOUs with to_phone but no to_user, try to find the user
+  const owedWithUsers = await enrichIOUsWithMissingUsers(owed || [], supabase);
+  const owingWithUsers = await enrichIOUsWithMissingUsers(paginatedOwing, supabase);
+
   return {
-    owed: (owed || []) as IOU[],
-    owing: paginatedOwing,
+    owed: owedWithUsers as IOU[],
+    owing: owingWithUsers,
     hasMoreOwed: (owedCount ?? 0) > offset + limit,
     hasMoreOwing: allOwing.length > offset + limit,
   };

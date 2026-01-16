@@ -224,15 +224,16 @@ export default function NewIOU() {
   return (
     <div className="h-dvh flex flex-col px-2">
       {/* Header */}
-      <header className="pt-8 pb-4 text-center shrink-0 relative">
+      <header className="pt-8 pb-4 shrink-0 flex items-center justify-between px-2">
+        <div className="w-10" /> {/* Spacer for balance */}
         <h1 className="text-lg font-medium">New <Logo /></h1>
         <button
           type="button"
           onClick={() => router.push("/dashboard")}
-          className="absolute right-2 top-8 p-2 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+          className="text-2xl font-bold w-10 h-10 flex items-center justify-center hover:opacity-60 transition-opacity"
           aria-label="Close"
         >
-          ✕
+          ×
         </button>
       </header>
 

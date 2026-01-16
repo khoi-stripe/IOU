@@ -154,30 +154,28 @@ function SwipeableToast({
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      className={`absolute bg-[var(--color-text)] text-[var(--color-bg)] px-4 py-2 text-xs font-medium rounded-2xl select-none max-w-[280px] text-center ${
+      className={`absolute bg-[var(--color-text)] text-[var(--color-bg)] px-4 py-2 text-xs font-medium rounded-[4px] select-none max-w-[280px] ${
         dismissed ? "" : shouldAnimate ? "animate-toast-reveal" : isTop ? "animate-toast-in" : ""
       }`}
       style={{
         touchAction: "pan-y",
         zIndex: index,
         visibility: isTop ? "visible" : "hidden",
-        display: "-webkit-box",
-        WebkitLineClamp: 2,
-        WebkitBoxOrient: "vertical",
-        overflow: "hidden",
       }}
     >
-      {toast.status && (
-        <span
-          className={`inline-block w-2 h-2 rounded-full mr-2 align-middle ${
-            toast.status === "repaid"
-              ? "bg-[var(--color-bg)]"
-              : "border border-[var(--color-bg)] bg-transparent"
-          }`}
-        />
-      )}
-      {total > 1 && <span className="opacity-60 mr-2">{index + 1}/{total}</span>}
-      {toast.message}
+      <div className="flex items-start gap-2">
+        {toast.status && (
+          <span
+            className={`shrink-0 w-2 h-2 rounded-full mt-0.5 ${
+              toast.status === "repaid"
+                ? "bg-[var(--color-bg)]"
+                : "border border-[var(--color-bg)] bg-transparent"
+            }`}
+          />
+        )}
+        {total > 1 && <span className="shrink-0 opacity-60">{index + 1}/{total}</span>}
+        <span className="line-clamp-2">{toast.message}</span>
+      </div>
     </div>
   );
 }

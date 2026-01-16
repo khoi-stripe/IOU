@@ -25,6 +25,17 @@ export default function Home() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [currentPinForUpgrade, setCurrentPinForUpgrade] = useState("");
 
+  // Helper to redirect after login - checks for pending claim
+  function redirectAfterLogin() {
+    const pendingClaimToken = sessionStorage.getItem("pendingClaimToken");
+    if (pendingClaimToken) {
+      sessionStorage.removeItem("pendingClaimToken");
+      router.push(`/share/${pendingClaimToken}`);
+    } else {
+      router.push("/dashboard");
+    }
+  }
+
   // Focus appropriate input when step changes
   useEffect(() => {
     if (step === "phone") {
@@ -118,7 +129,7 @@ export default function Home() {
         setCurrentPinForUpgrade(pin);
         setShowUpgradeModal(true);
       } else {
-        router.push("/dashboard");
+        redirectAfterLogin();
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -142,7 +153,7 @@ export default function Home() {
         return false;
       }
 
-      router.push("/dashboard");
+      redirectAfterLogin();
       return true;
     } catch {
       return false;

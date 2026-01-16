@@ -207,10 +207,14 @@ export default function SharePageClient({ token }: Props) {
         ) : (
           <>
             <p className="text-sm text-[var(--color-text-muted)]">
-              Track your own IOUs with friends
+              Sign up to claim this IOU
             </p>
             <Link
               href="/"
+              onClick={() => {
+                // Store the share token so we can redirect back after login
+                sessionStorage.setItem("pendingClaimToken", token);
+              }}
               className="inline-block w-full py-3 bg-[var(--color-accent)] text-[var(--color-bg)] text-center rounded-full hover:opacity-80 transition-opacity font-medium"
             >
               Sign Up / Log In

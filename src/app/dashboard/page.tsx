@@ -68,34 +68,6 @@ export default function Dashboard() {
     router.push("/");
   }
 
-  // Scroll to a specific IOU, switching tabs if needed
-  const scrollToIOU = useCallback((iouId: string) => {
-    // Check if IOU is in owed list (user is owed)
-    const inOwed = owed.some(iou => iou.id === iouId);
-    const inOwing = owing.some(iou => iou.id === iouId);
-    
-    // Reset filter to "all" so the IOU is visible regardless of status
-    setFilter("all");
-    
-    const doScroll = () => {
-      setTimeout(() => {
-        const element = document.getElementById(`iou-${iouId}`);
-        element?.scrollIntoView({ behavior: "smooth", block: "center" });
-      }, 150);
-    };
-    
-    if (inOwed && activeTab !== "owed") {
-      setActiveTab("owed");
-      doScroll();
-    } else if (inOwing && activeTab !== "owe") {
-      setActiveTab("owe");
-      doScroll();
-    } else if (inOwed || inOwing) {
-      // Already on correct tab
-      doScroll();
-    }
-  }, [owed, owing, activeTab]);
-
   // Fetch notifications on mount (store them, show after IOUs load)
   useEffect(() => {
     async function fetchNotifications() {
@@ -160,7 +132,7 @@ export default function Dashboard() {
     for (const notification of pendingNotifications) {
       showToast(notification.message, {
         persistent: true,
-        onTap: () => scrollToIOU(notification.iou_id),
+        status: notification.type === "repaid" ? "repaid" : "pending",
         onDismiss: async () => {
           await fetch("/api/notifications/acknowledge", {
             method: "POST",
@@ -173,7 +145,7 @@ export default function Dashboard() {
     
     // Clear pending notifications after showing
     setPendingNotifications([]);
-  }, [loading, pendingNotifications, showToast, scrollToIOU]);
+  }, [loading, pendingNotifications, showToast]);
 
   const loadMore = useCallback(() => {
     const hasMore = activeTab === "owe" ? hasMoreOwed : hasMoreOwing;
@@ -420,7 +392,7 @@ const IOUCard = memo(function IOUCard({
   const isPending = iou.status === "pending";
 
   return (
-    <div id={`iou-${iou.id}`} className="p-4 bg-[var(--color-bg-secondary)] space-y-3 rounded-[4px]">
+    <div className="p-4 bg-[var(--color-bg-secondary)] space-y-3 rounded-[4px]">
       {/* Top row: status + date + share icon */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">

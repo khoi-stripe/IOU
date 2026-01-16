@@ -7,13 +7,13 @@ interface Toast {
   message: string;
   persistent?: boolean;
   onDismiss?: () => void;
-  onTap?: () => void;
+  status?: "pending" | "repaid";
 }
 
 interface ToastOptions {
   persistent?: boolean;
   onDismiss?: () => void;
-  onTap?: () => void;
+  status?: "pending" | "repaid";
 }
 
 interface ToastContextType {
@@ -46,7 +46,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
   const showToast = useCallback((message: string, options?: ToastOptions) => {
     const id = Date.now() + Math.random();
-    setToasts((prev) => [...prev, { id, message, persistent: options?.persistent, onDismiss: options?.onDismiss, onTap: options?.onTap }]);
+    setToasts((prev) => [...prev, { id, message, persistent: options?.persistent, onDismiss: options?.onDismiss, status: options?.status }]);
 
     // Auto-dismiss after 3 seconds (unless persistent)
     if (!options?.persistent) {
@@ -90,34 +90,20 @@ function SwipeableToast({
   onDismiss: () => void;
 }) {
   const touchStartX = useRef(0);
-  const touchStartY = useRef(0);
   const currentX = useRef(0);
-  const hasMoved = useRef(false);
-  const isTouchDevice = useRef(false);
   const elementRef = useRef<HTMLDivElement>(null);
   const [swiping, setSwiping] = useState(false);
   const [dismissed, setDismissed] = useState(false);
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    isTouchDevice.current = true;
     touchStartX.current = e.touches[0].clientX;
-    touchStartY.current = e.touches[0].clientY;
     currentX.current = 0;
-    hasMoved.current = false;
     setSwiping(true);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!swiping) return;
-    const deltaX = e.touches[0].clientX - touchStartX.current;
-    const deltaY = e.touches[0].clientY - touchStartY.current;
-    
-    // Only count as move if moved more than 10px
-    if (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10) {
-      hasMoved.current = true;
-    }
-    
-    currentX.current = deltaX;
+    currentX.current = e.touches[0].clientX - touchStartX.current;
     if (elementRef.current) {
       elementRef.current.style.transform = `translateX(${currentX.current}px)`;
       elementRef.current.style.opacity = `${1 - Math.abs(currentX.current) / 200}`;
@@ -126,9 +112,9 @@ function SwipeableToast({
 
   const handleTouchEnd = () => {
     setSwiping(false);
-    const swipeThreshold = 80;
+    const threshold = 80;
     
-    if (Math.abs(currentX.current) > swipeThreshold) {
+    if (Math.abs(currentX.current) > threshold) {
       // Swipe out
       setDismissed(true);
       if (elementRef.current) {
@@ -136,10 +122,6 @@ function SwipeableToast({
         elementRef.current.style.opacity = "0";
       }
       setTimeout(onDismiss, 150);
-    } else if (!hasMoved.current && toast.onTap) {
-      // Tap (no significant movement)
-      toast.onTap();
-      onDismiss();
     } else {
       // Snap back with spring animation
       if (elementRef.current) {
@@ -155,26 +137,16 @@ function SwipeableToast({
     }
   };
 
-  const handleClick = () => {
-    // Desktop click handler (skip if touch device - handled by touchEnd)
-    if (isTouchDevice.current) return;
-    if (toast.onTap) {
-      toast.onTap();
-      onDismiss();
-    }
-  };
-
   // Only show the top toast (last in array), others are hidden behind
   const isTop = index === total - 1;
 
   return (
     <div
       ref={elementRef}
-      onClick={handleClick}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      className={`absolute bg-[var(--color-text)] text-[var(--color-bg)] px-4 py-2 text-xs font-medium rounded-2xl select-none max-w-[280px] text-center cursor-pointer ${
+      className={`absolute bg-[var(--color-text)] text-[var(--color-bg)] px-4 py-2 text-xs font-medium rounded-2xl select-none max-w-[280px] text-center ${
         dismissed ? "" : "animate-toast-in"
       }`}
       style={{
@@ -188,6 +160,15 @@ function SwipeableToast({
         overflow: "hidden",
       }}
     >
+      {toast.status && (
+        <span
+          className={`inline-block w-2 h-2 rounded-full mr-2 align-middle ${
+            toast.status === "repaid"
+              ? "bg-[var(--color-bg)]"
+              : "border border-[var(--color-bg)] bg-transparent"
+          }`}
+        />
+      )}
       {total > 1 && <span className="opacity-60 mr-2">{index + 1}/{total}</span>}
       {toast.message}
     </div>

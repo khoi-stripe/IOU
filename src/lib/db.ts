@@ -334,6 +334,9 @@ export async function getIOUsByUser(
   const limit = options?.limit ?? 1000; // Default to large number if no limit
   const offset = options?.offset ?? 0;
 
+  // Get archived IOU IDs for this user to filter them out
+  const archivedIds = await getArchivedIOUIds(userId);
+
   // IOUs where this user owes someone
   const { data: owed, count: owedCount } = await supabase
     .from("iou_ious")
@@ -368,10 +371,15 @@ export async function getIOUsByUser(
     .is("to_user_id", null)
     .order("created_at", { ascending: false });
 
-  // Combine and deduplicate owing, then apply pagination
+  // Filter out archived IOUs from owed
+  const owedFiltered = (owed || []).filter(iou => !archivedIds.has(iou.id));
+
+  // Combine and deduplicate owing, filter out archived, then apply pagination
   const owingMap = new Map<string, IOU>();
   [...(owingByUserId || []), ...(owingByPhone || [])].forEach((iou) => {
-    owingMap.set(iou.id, iou as IOU);
+    if (!archivedIds.has(iou.id)) {
+      owingMap.set(iou.id, iou as IOU);
+    }
   });
   
   const allOwing = Array.from(owingMap.values()).sort(
@@ -380,7 +388,7 @@ export async function getIOUsByUser(
   const paginatedOwing = allOwing.slice(offset, offset + limit);
 
   // Post-process: for IOUs with to_phone but no to_user, try to find the user
-  const owedWithUsers = await enrichIOUsWithMissingUsers(owed || [], supabase);
+  const owedWithUsers = await enrichIOUsWithMissingUsers(owedFiltered, supabase);
   const owingWithUsers = await enrichIOUsWithMissingUsers(paginatedOwing, supabase);
 
   return {

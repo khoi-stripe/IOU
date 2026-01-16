@@ -25,7 +25,7 @@ export default function Home() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [currentPinForUpgrade, setCurrentPinForUpgrade] = useState("");
 
-  // Focus appropriate input when step changes - immediate since all inputs are in DOM
+  // Focus appropriate input when step changes
   useEffect(() => {
     if (step === "phone") {
       phoneInputRef.current?.focus();
@@ -40,6 +40,11 @@ export default function Home() {
 
   async function handlePhoneSubmit(e: React.FormEvent) {
     e.preventDefault();
+    
+    // Focus next input SYNCHRONOUSLY while still in user gesture context
+    // This keeps the keyboard open on mobile (focus must happen before async)
+    loginPinRef.current?.focus();
+    
     setError("");
     setLoading(true);
 
@@ -185,12 +190,12 @@ export default function Home() {
         </p>
       </header>
 
-      {/* Form area - all forms kept in DOM, hidden when inactive */}
-      <div className="flex-1 flex flex-col justify-end pb-8">
+      {/* Form area - inactive forms are invisible but focusable (opacity-0, not display:none) */}
+      <div className="flex-1 flex flex-col justify-end pb-8 relative">
         {/* Phone step */}
         <form 
           onSubmit={handlePhoneSubmit} 
-          className={`space-y-6 ${step !== "phone" ? "hidden" : ""}`}
+          className={`space-y-6 ${step !== "phone" ? "opacity-0 absolute inset-x-0 bottom-8 -z-10 pointer-events-none" : ""}`}
         >
           <div>
             <label htmlFor="phone" className={labelClass}>
@@ -215,6 +220,7 @@ export default function Home() {
           <button
             type="submit"
             disabled={loading}
+            tabIndex={-1}
             className={primaryButtonClass + " w-full"}
           >
             {loading ? "..." : "Continue"}
@@ -224,7 +230,7 @@ export default function Home() {
         {/* Login step */}
         <form 
           onSubmit={handleAuthSubmit} 
-          className={`space-y-6 ${step !== "login" ? "hidden" : ""}`}
+          className={`space-y-6 ${step !== "login" ? "opacity-0 absolute inset-x-0 bottom-8 -z-10 pointer-events-none" : ""}`}
         >
           <div>
             <label htmlFor="loginPin" className={labelClass}>
@@ -270,7 +276,7 @@ export default function Home() {
         {/* Signup step */}
         <form 
           onSubmit={handleAuthSubmit} 
-          className={`space-y-6 ${step !== "signup" ? "hidden" : ""}`}
+          className={`space-y-6 ${step !== "signup" ? "opacity-0 absolute inset-x-0 bottom-8 -z-10 pointer-events-none" : ""}`}
         >
           <div>
             <label htmlFor="name" className={labelClass}>
@@ -356,7 +362,7 @@ export default function Home() {
         {/* Set PIN step */}
         <form 
           onSubmit={handleAuthSubmit} 
-          className={`space-y-6 ${step !== "setpin" ? "hidden" : ""}`}
+          className={`space-y-6 ${step !== "setpin" ? "opacity-0 absolute inset-x-0 bottom-8 -z-10 pointer-events-none" : ""}`}
         >
           <div>
             <label htmlFor="setPin" className={labelClass}>

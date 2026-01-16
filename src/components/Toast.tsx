@@ -93,11 +93,13 @@ function SwipeableToast({
   const touchStartY = useRef(0);
   const currentX = useRef(0);
   const hasMoved = useRef(false);
+  const isTouchDevice = useRef(false);
   const elementRef = useRef<HTMLDivElement>(null);
   const [swiping, setSwiping] = useState(false);
   const [dismissed, setDismissed] = useState(false);
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    isTouchDevice.current = true;
     touchStartX.current = e.touches[0].clientX;
     touchStartY.current = e.touches[0].clientY;
     currentX.current = 0;
@@ -124,9 +126,9 @@ function SwipeableToast({
 
   const handleTouchEnd = () => {
     setSwiping(false);
-    const threshold = 80;
+    const swipeThreshold = 80;
     
-    if (Math.abs(currentX.current) > threshold) {
+    if (Math.abs(currentX.current) > swipeThreshold) {
       // Swipe out
       setDismissed(true);
       if (elementRef.current) {
@@ -153,16 +155,26 @@ function SwipeableToast({
     }
   };
 
+  const handleClick = () => {
+    // Desktop click handler (skip if touch device - handled by touchEnd)
+    if (isTouchDevice.current) return;
+    if (toast.onTap) {
+      toast.onTap();
+      onDismiss();
+    }
+  };
+
   // Only show the top toast (last in array), others are hidden behind
   const isTop = index === total - 1;
 
   return (
     <div
       ref={elementRef}
+      onClick={handleClick}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      className={`absolute bg-[var(--color-text)] text-[var(--color-bg)] px-4 py-2 text-xs font-medium rounded-2xl select-none max-w-[280px] text-center ${
+      className={`absolute bg-[var(--color-text)] text-[var(--color-bg)] px-4 py-2 text-xs font-medium rounded-2xl select-none max-w-[280px] text-center cursor-pointer ${
         dismissed ? "" : "animate-toast-in"
       }`}
       style={{

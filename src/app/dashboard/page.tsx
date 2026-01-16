@@ -74,23 +74,25 @@ export default function Dashboard() {
     const inOwed = owed.some(iou => iou.id === iouId);
     const inOwing = owing.some(iou => iou.id === iouId);
     
+    // Reset filter to "all" so the IOU is visible regardless of status
+    setFilter("all");
+    
+    const doScroll = () => {
+      setTimeout(() => {
+        const element = document.getElementById(`iou-${iouId}`);
+        element?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 150);
+    };
+    
     if (inOwed && activeTab !== "owed") {
       setActiveTab("owed");
-      // Wait for tab switch to render, then scroll
-      setTimeout(() => {
-        const element = document.getElementById(`iou-${iouId}`);
-        element?.scrollIntoView({ behavior: "smooth", block: "center" });
-      }, 100);
+      doScroll();
     } else if (inOwing && activeTab !== "owe") {
       setActiveTab("owe");
-      setTimeout(() => {
-        const element = document.getElementById(`iou-${iouId}`);
-        element?.scrollIntoView({ behavior: "smooth", block: "center" });
-      }, 100);
-    } else {
+      doScroll();
+    } else if (inOwed || inOwing) {
       // Already on correct tab
-      const element = document.getElementById(`iou-${iouId}`);
-      element?.scrollIntoView({ behavior: "smooth", block: "center" });
+      doScroll();
     }
   }, [owed, owing, activeTab]);
 

@@ -44,6 +44,13 @@ export interface Notification {
   acknowledged_at: string | null;
 }
 
+export interface Archive {
+  id: string;
+  user_id: string;
+  iou_id: string;
+  archived_at: string;
+}
+
 // User operations
 
 // Check if a phone number is already registered and if it has a PIN
@@ -707,4 +714,85 @@ export async function acknowledgeAllNotifications(userId: string): Promise<void>
     .update({ acknowledged_at: new Date().toISOString() })
     .eq("user_id", userId)
     .is("acknowledged_at", null);
+}
+
+// Archive operations
+
+export async function archiveIOU(userId: string, iouId: string): Promise<boolean> {
+  const supabase = getSupabase();
+  
+  // Check if already archived
+  const { data: existing } = await supabase
+    .from("iou_archives")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("iou_id", iouId)
+    .single();
+  
+  if (existing) {
+    return true; // Already archived
+  }
+  
+  const { error } = await supabase
+    .from("iou_archives")
+    .insert({
+      user_id: userId,
+      iou_id: iouId,
+    });
+  
+  return !error;
+}
+
+export async function unarchiveIOU(userId: string, iouId: string): Promise<boolean> {
+  const supabase = getSupabase();
+  
+  const { error } = await supabase
+    .from("iou_archives")
+    .delete()
+    .eq("user_id", userId)
+    .eq("iou_id", iouId);
+  
+  return !error;
+}
+
+export async function getArchivedIOUs(userId: string): Promise<IOU[]> {
+  const supabase = getSupabase();
+  
+  // Get archived IOU IDs for this user
+  const { data: archives } = await supabase
+    .from("iou_archives")
+    .select("iou_id")
+    .eq("user_id", userId)
+    .order("archived_at", { ascending: false });
+  
+  if (!archives || archives.length === 0) {
+    return [];
+  }
+  
+  const iouIds = archives.map(a => a.iou_id);
+  
+  // Fetch the actual IOUs
+  const { data: ious } = await supabase
+    .from("iou_ious")
+    .select(`
+      *,
+      from_user:iou_users!iou_ious_from_user_id_fkey(*),
+      to_user:iou_users!iou_ious_to_user_id_fkey(*)
+    `)
+    .in("id", iouIds);
+  
+  // Sort by archive order (reverse chron)
+  const iouMap = new Map((ious || []).map(iou => [iou.id, iou]));
+  return iouIds.map(id => iouMap.get(id)).filter(Boolean) as IOU[];
+}
+
+export async function getArchivedIOUIds(userId: string): Promise<Set<string>> {
+  const supabase = getSupabase();
+  
+  const { data } = await supabase
+    .from("iou_archives")
+    .select("iou_id")
+    .eq("user_id", userId);
+  
+  return new Set((data || []).map(a => a.iou_id));
 }

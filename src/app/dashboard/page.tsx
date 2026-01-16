@@ -8,6 +8,7 @@ import Logo from "@/components/Logo";
 import { useToast } from "@/components/Toast";
 import ImageWithLoader from "@/components/ImageWithLoader";
 import BalanceModal from "@/components/BalanceModal";
+import ArchiveModal from "@/components/ArchiveModal";
 
 const PAGE_SIZE = 10;
 
@@ -49,7 +50,7 @@ type Filter = "all" | "pending" | "repaid";
 function DashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { showToast } = useToast();
+  const { showToast, dismissToast } = useToast();
   const [user, setUser] = useState<User | null>(null);
   const [owed, setOwed] = useState<IOU[]>([]);
   const [owing, setOwing] = useState<IOU[]>([]);
@@ -62,10 +63,13 @@ function DashboardContent() {
   const [activeTab, setActiveTab] = useState<Tab>(initialTab);
   const [filter, setFilter] = useState<Filter>("all");
   const [showBalance, setShowBalance] = useState(false);
+  const [showArchive, setShowArchive] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const [collapsingId, setCollapsingId] = useState<string | null>(null);
   const [pendingNotifications, setPendingNotifications] = useState<Notification[]>([]);
   const notificationsShownRef = useRef(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -173,6 +177,19 @@ function DashboardContent() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [loadMore]);
 
+  // Close user menu when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setShowUserMenu(false);
+      }
+    }
+    if (showUserMenu) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [showUserMenu]);
+
   async function handleMarkRepaid(id: string) {
     // Start collapse animation immediately (optimistic)
     setCollapsingId(id);
@@ -224,6 +241,72 @@ function DashboardContent() {
     }
   }
 
+  async function handleArchive(iouId: string) {
+    // Store the IOU for potential undo
+    const archivedIOU = [...owed, ...owing].find(iou => iou.id === iouId);
+    
+    // Remove from local state immediately (optimistic)
+    setOwed(prev => prev.filter(iou => iou.id !== iouId));
+    setOwing(prev => prev.filter(iou => iou.id !== iouId));
+
+    // API call
+    try {
+      await fetch(`/api/ious/${iouId}/archive`, { method: "POST" });
+    } catch (err) {
+      console.error(err);
+      // Revert on error
+      if (archivedIOU) {
+        if (archivedIOU.from_user_id === user?.id) {
+          setOwed(prev => [archivedIOU, ...prev]);
+        } else {
+          setOwing(prev => [archivedIOU, ...prev]);
+        }
+      }
+      showToast("Failed to archive");
+      return;
+    }
+
+    // Show toast with undo option
+    showToast("IOU archived", {
+      persistent: true,
+      action: {
+        label: "Undo",
+        onClick: async () => {
+          // Unarchive
+          try {
+            await fetch(`/api/ious/${iouId}/archive`, { method: "DELETE" });
+            // Restore to local state
+            if (archivedIOU) {
+              if (archivedIOU.from_user_id === user?.id) {
+                setOwed(prev => [archivedIOU, ...prev]);
+              } else {
+                setOwing(prev => [archivedIOU, ...prev]);
+              }
+            }
+          } catch {
+            showToast("Failed to undo");
+          }
+        },
+      },
+    });
+
+    // Auto-dismiss after 5 seconds
+    setTimeout(() => {
+      // Toast will auto-dismiss when user interacts or after timeout
+    }, 5000);
+  }
+
+  async function handleUnarchive(iouId: string) {
+    try {
+      await fetch(`/api/ious/${iouId}/archive`, { method: "DELETE" });
+      // Refresh data to show unarchived IOU
+      fetchData();
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to unarchive");
+    }
+  }
+
   const items = activeTab === "owe" ? owed : owing;
   const filtered = items.filter((i) => {
     if (filter === "all") return true;
@@ -250,6 +333,15 @@ function DashboardContent() {
         />
       )}
 
+      {/* Archive Modal */}
+      {showArchive && user && (
+        <ArchiveModal
+          userId={user.id}
+          onClose={() => setShowArchive(false)}
+          onUnarchive={handleUnarchive}
+        />
+      )}
+
       {/* Sticky header + tabs container */}
       <div className="sticky top-0 z-20 bg-[var(--color-bg)] -mt-4 pt-4">
         {/* Header */}
@@ -257,12 +349,39 @@ function DashboardContent() {
           <button onClick={() => setShowBalance(true)} className="text-lg hover:opacity-60 transition-opacity">
             <Logo />
           </button>
-          <button 
-            onClick={handleLogout}
-            className="text-sm font-medium hover:underline underline-offset-4"
-          >
-            {user?.display_name} ↗
-          </button>
+          
+          {/* Username menu */}
+          <div className="relative" ref={userMenuRef}>
+            <button 
+              onClick={() => setShowUserMenu(!showUserMenu)}
+              className="text-sm font-medium hover:underline underline-offset-4"
+            >
+              {user?.display_name} ▾
+            </button>
+
+            {showUserMenu && (
+              <div className="absolute right-0 top-full mt-1 bg-[var(--color-bg)] border border-[var(--color-border)] rounded-[4px] shadow-lg z-30 overflow-hidden animate-menu-in origin-top-right">
+                <button
+                  onClick={() => {
+                    setShowUserMenu(false);
+                    setShowArchive(true);
+                  }}
+                  className="w-full px-4 py-2 text-left text-sm hover:bg-[var(--color-bg-secondary)] transition-colors whitespace-nowrap"
+                >
+                  Archive
+                </button>
+                <button
+                  onClick={() => {
+                    setShowUserMenu(false);
+                    handleLogout();
+                  }}
+                  className="w-full px-4 py-2 text-left text-sm hover:bg-[var(--color-bg-secondary)] transition-colors whitespace-nowrap"
+                >
+                  Logout
+                </button>
+              </div>
+            )}
+          </div>
         </header>
 
         {/* Tabs */}
@@ -361,6 +480,7 @@ function DashboardContent() {
                     isCollapsing={collapsingId === iou.id}
                     onMarkRepaid={() => handleMarkRepaid(iou.id)}
                     onShare={() => handleShare(iou)}
+                    onArchive={() => handleArchive(iou.id)}
                   />
                 ))}
                 {loadingMore && (
@@ -392,13 +512,31 @@ const IOUCard = memo(function IOUCard({
   isCollapsing,
   onMarkRepaid,
   onShare,
+  onArchive,
 }: {
   iou: IOU;
   isOwe: boolean;
   isCollapsing?: boolean;
   onMarkRepaid: () => void;
   onShare: () => void;
+  onArchive: () => void;
 }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    if (menuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [menuOpen]);
+
   // For "owe" IOUs: show claimed user's name, or to_name, or phone
   // For "owed" IOUs: show the creator's name
   const personName = isOwe
@@ -412,7 +550,7 @@ const IOUCard = memo(function IOUCard({
 
   return (
     <div className="p-4 bg-[var(--color-bg-secondary)] rounded-[4px]">
-      {/* Top row: status + date + share icon */}
+      {/* Top row: status + date + overflow menu */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           {/* Status circle */}
@@ -432,18 +570,43 @@ const IOUCard = memo(function IOUCard({
           </span>
         </div>
 
-        {/* Share icon */}
-        <button
-          onClick={onShare}
-          className="p-1 hover:opacity-60 transition-opacity text-[var(--color-text-muted)]"
-          aria-label="Share"
-        >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-            <polyline points="16 6 12 2 8 6" />
-            <line x1="12" y1="2" x2="12" y2="15" />
-          </svg>
-        </button>
+        {/* Overflow menu */}
+        <div className="relative" ref={menuRef}>
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="p-1 hover:opacity-60 transition-opacity text-[var(--color-text-muted)]"
+            aria-label="More options"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <circle cx="5" cy="12" r="2" />
+              <circle cx="12" cy="12" r="2" />
+              <circle cx="19" cy="12" r="2" />
+            </svg>
+          </button>
+
+          {menuOpen && (
+            <div className="absolute right-0 top-full mt-1 bg-[var(--color-bg)] border border-[var(--color-border)] rounded-[4px] shadow-lg z-20 overflow-hidden animate-menu-in origin-top-right">
+              <button
+                onClick={() => {
+                  setMenuOpen(false);
+                  onShare();
+                }}
+                className="w-full px-4 py-2 text-left text-sm hover:bg-[var(--color-bg-secondary)] transition-colors whitespace-nowrap"
+              >
+                Share
+              </button>
+              <button
+                onClick={() => {
+                  setMenuOpen(false);
+                  onArchive();
+                }}
+                className="w-full px-4 py-2 text-left text-sm hover:bg-[var(--color-bg-secondary)] transition-colors whitespace-nowrap"
+              >
+                Archive
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Content */}

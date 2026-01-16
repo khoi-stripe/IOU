@@ -2,12 +2,18 @@
 
 import { createContext, useContext, useState, useCallback, useRef, ReactNode, useEffect } from "react";
 
+interface ToastAction {
+  label: string;
+  onClick: () => void;
+}
+
 interface Toast {
   id: number;
   message: string;
   persistent?: boolean;
   onDismiss?: () => void;
   status?: "pending" | "repaid";
+  action?: ToastAction;
   isRevealed?: boolean; // For grow/fade animation when becoming top
 }
 
@@ -15,6 +21,7 @@ interface ToastOptions {
   persistent?: boolean;
   onDismiss?: () => void;
   status?: "pending" | "repaid";
+  action?: ToastAction;
 }
 
 interface ToastContextType {
@@ -53,7 +60,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
   const showToast = useCallback((message: string, options?: ToastOptions) => {
     const id = Date.now() + Math.random();
-    setToasts((prev) => [...prev, { id, message, persistent: options?.persistent, onDismiss: options?.onDismiss, status: options?.status }]);
+    setToasts((prev) => [...prev, { id, message, persistent: options?.persistent, onDismiss: options?.onDismiss, status: options?.status, action: options?.action }]);
 
     // Auto-dismiss after 3 seconds (unless persistent)
     if (!options?.persistent) {
@@ -188,7 +195,19 @@ function SwipeableToast({
           />
         )}
         {total > 1 && <span className="shrink-0 opacity-60">{index + 1}/{total}</span>}
-        <span className="line-clamp-2">{toast.message}</span>
+        <span className="line-clamp-2 flex-1">{toast.message}</span>
+        {toast.action && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              toast.action?.onClick();
+              onDismiss();
+            }}
+            className="shrink-0 ml-2 underline hover:opacity-70"
+          >
+            {toast.action.label}
+          </button>
+        )}
       </div>
     </div>
   );

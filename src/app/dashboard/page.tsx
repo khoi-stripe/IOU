@@ -177,7 +177,7 @@ export default function Dashboard() {
     // Start collapse animation immediately (optimistic)
     setCollapsingId(id);
     
-    // Update locally after animation completes
+    // Update locally after animation completes (250ms to match CSS)
     setTimeout(() => {
       setOwed(prev => prev.map(iou => 
         iou.id === id ? { ...iou, status: "repaid" as const, repaid_at: new Date().toISOString() } : iou
@@ -186,7 +186,7 @@ export default function Dashboard() {
         iou.id === id ? { ...iou, status: "repaid" as const, repaid_at: new Date().toISOString() } : iou
       ));
       setCollapsingId(null);
-    }, 300);
+    }, 250);
     
     // API call in background
     try {
@@ -393,9 +393,9 @@ const IOUCard = memo(function IOUCard({
   const isPending = iou.status === "pending";
 
   return (
-    <div className="p-4 bg-[var(--color-bg-secondary)] space-y-3 rounded-[4px]">
+    <div className="p-4 bg-[var(--color-bg-secondary)] rounded-[4px]">
       {/* Top row: status + date + share icon */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           {/* Status circle */}
           <span
@@ -452,13 +452,13 @@ const IOUCard = memo(function IOUCard({
         <ImageWithLoader
           src={iou.photo_url}
           alt="IOU photo"
-          className="w-full aspect-[4/3]"
+          className="w-full aspect-[4/3] mt-3"
         />
       )}
 
-      {/* Mark Repaid button */}
+      {/* Mark Repaid button - uses mt-3 instead of space-y for controlled collapse */}
       {isPending && (
-        <div className={isCollapsing ? "animate-button-collapse" : ""}>
+        <div className={`mt-3 ${isCollapsing ? "animate-button-collapse" : ""}`}>
           <HoldToConfirmButton onConfirm={onMarkRepaid} label="Hold to Mark Repaid" duration={1200} />
         </div>
       )}
@@ -500,7 +500,7 @@ function HoldToConfirmButton({
       // Start exit animation after iris completes, call onConfirm immediately for smooth transition
       setTimeout(() => {
         setExiting(true);
-        onConfirm(); // Call immediately so collapse starts while button is exiting
+        onConfirm();
       }, 500);
       return;
     }

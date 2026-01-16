@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, useRef, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useRef, ReactNode, useEffect } from "react";
 
 interface Toast {
   id: number;
@@ -8,6 +8,7 @@ interface Toast {
   persistent?: boolean;
   onDismiss?: () => void;
   status?: "pending" | "repaid";
+  isRevealed?: boolean; // For grow/fade animation when becoming top
 }
 
 interface ToastOptions {
@@ -40,7 +41,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       if (toast?.onDismiss) {
         toast.onDismiss();
       }
-      return prev.filter((t) => t.id !== id);
+      const filtered = prev.filter((t) => t.id !== id);
+      // Mark the new top toast as revealed for animation
+      if (filtered.length > 0) {
+        const lastIndex = filtered.length - 1;
+        filtered[lastIndex] = { ...filtered[lastIndex], isRevealed: true };
+      }
+      return filtered;
     });
   }, []);
 
@@ -123,9 +130,9 @@ function SwipeableToast({
       }
       setTimeout(onDismiss, 150);
     } else {
-      // Snap back with spring animation
+      // Snap back with lively bounce
       if (elementRef.current) {
-        elementRef.current.style.transition = "transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s";
+        elementRef.current.style.transition = "transform 0.5s cubic-bezier(0.2, 1.8, 0.4, 1), opacity 0.2s";
         elementRef.current.style.transform = "translateX(0)";
         elementRef.current.style.opacity = "1";
         setTimeout(() => {
@@ -137,8 +144,9 @@ function SwipeableToast({
     }
   };
 
-  // Only show the top toast (last in array), others are hidden behind
+  // Only show the top toast (last in array), others are completely hidden
   const isTop = index === total - 1;
+  const shouldAnimate = isTop && (toast.isRevealed || total === 1);
 
   return (
     <div
@@ -147,13 +155,12 @@ function SwipeableToast({
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       className={`absolute bg-[var(--color-text)] text-[var(--color-bg)] px-4 py-2 text-xs font-medium rounded-2xl select-none max-w-[280px] text-center ${
-        dismissed ? "" : "animate-toast-in"
+        dismissed ? "" : shouldAnimate ? "animate-toast-reveal" : isTop ? "animate-toast-in" : ""
       }`}
       style={{
         touchAction: "pan-y",
         zIndex: index,
-        opacity: isTop ? 1 : 0.3,
-        transform: isTop ? "scale(1)" : `scale(${0.95 - (total - 1 - index) * 0.05})`,
+        visibility: isTop ? "visible" : "hidden",
         display: "-webkit-box",
         WebkitLineClamp: 2,
         WebkitBoxOrient: "vertical",

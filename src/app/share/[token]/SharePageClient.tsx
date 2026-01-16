@@ -198,12 +198,14 @@ export default function SharePageClient({ token }: Props) {
             </button>
             <button
               onClick={async () => {
+                // Store IOU ID for auto-claim, log out, and go to signup
+                sessionStorage.setItem("pendingClaimIOUId", iou.id);
                 await fetch("/api/auth/logout", { method: "POST" });
-                setCurrentUser(null);
+                router.push("/");
               }}
               className="text-xs text-[var(--color-text-muted)] underline hover:text-[var(--color-text)]"
             >
-              Not you? Switch account
+              Not you? Sign up with different account
             </button>
           </>
         ) : currentUser ? (

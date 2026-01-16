@@ -15,6 +15,7 @@ interface Toast {
   status?: "pending" | "repaid";
   action?: ToastAction;
   isRevealed?: boolean; // For grow/fade animation when becoming top
+  isExiting?: boolean; // For exit animation
 }
 
 interface ToastOptions {
@@ -43,31 +44,38 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const dismissToast = useCallback((id: number) => {
-    setToasts((prev) => {
-      const toast = prev.find((t) => t.id === id);
-      if (toast?.onDismiss) {
-        toast.onDismiss();
-      }
-      const filtered = prev.filter((t) => t.id !== id);
-      // Mark the new top toast as revealed for animation
-      if (filtered.length > 0) {
-        const lastIndex = filtered.length - 1;
-        filtered[lastIndex] = { ...filtered[lastIndex], isRevealed: true };
-      }
-      return filtered;
-    });
+    // First, mark as exiting to trigger animation
+    setToasts((prev) => 
+      prev.map((t) => t.id === id ? { ...t, isExiting: true } : t)
+    );
+    
+    // Then remove after animation completes
+    setTimeout(() => {
+      setToasts((prev) => {
+        const toast = prev.find((t) => t.id === id);
+        if (toast?.onDismiss) {
+          toast.onDismiss();
+        }
+        const filtered = prev.filter((t) => t.id !== id);
+        // Mark the new top toast as revealed for animation
+        if (filtered.length > 0) {
+          const lastIndex = filtered.length - 1;
+          filtered[lastIndex] = { ...filtered[lastIndex], isRevealed: true };
+        }
+        return filtered;
+      });
+    }, 300);
   }, []);
 
   const showToast = useCallback((message: string, options?: ToastOptions) => {
     const id = Date.now() + Math.random();
     setToasts((prev) => [...prev, { id, message, persistent: options?.persistent, onDismiss: options?.onDismiss, status: options?.status, action: options?.action }]);
 
-    // Auto-dismiss after 3 seconds (unless persistent)
-    if (!options?.persistent) {
-      setTimeout(() => {
-        dismissToast(id);
-      }, 3000);
-    }
+    // Auto-dismiss: 5 seconds for toasts with actions, 3 seconds otherwise
+    const timeout = options?.action ? 5000 : 3000;
+    setTimeout(() => {
+      dismissToast(id);
+    }, timeout);
 
     return id;
   }, [dismissToast]);
@@ -108,15 +116,37 @@ function SwipeableToast({
   const elementRef = useRef<HTMLDivElement>(null);
   const [swiping, setSwiping] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  const [exiting, setExiting] = useState(false);
+  const dismissedRef = useRef(false);
+
+  // Animate exit: fade out and slide down
+  const animateExit = useCallback(() => {
+    if (dismissedRef.current) return;
+    dismissedRef.current = true;
+    setExiting(true);
+    if (elementRef.current) {
+      elementRef.current.style.transition = "opacity 0.3s ease-out, transform 0.3s ease-out";
+      elementRef.current.style.opacity = "0";
+      elementRef.current.style.transform = "translateY(20px)";
+    }
+  }, []);
+
+  // React to external exit trigger (from timeout)
+  useEffect(() => {
+    if (toast.isExiting && !exiting) {
+      animateExit();
+    }
+  }, [toast.isExiting, exiting, animateExit]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    if (exiting) return;
     touchStartX.current = e.touches[0].clientX;
     currentX.current = 0;
     setSwiping(true);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (!swiping) return;
+    if (!swiping || exiting) return;
     currentX.current = e.touches[0].clientX - touchStartX.current;
     if (elementRef.current) {
       elementRef.current.style.transform = `translateX(${currentX.current}px)`;
@@ -125,13 +155,16 @@ function SwipeableToast({
   };
 
   const handleTouchEnd = () => {
+    if (exiting) return;
     setSwiping(false);
     const threshold = 80;
     
     if (Math.abs(currentX.current) > threshold) {
-      // Swipe out
+      // Swipe out - use custom animation for swipe direction
       setDismissed(true);
+      dismissedRef.current = true;
       if (elementRef.current) {
+        elementRef.current.style.transition = "opacity 0.15s, transform 0.15s";
         elementRef.current.style.transform = `translateX(${currentX.current > 0 ? 300 : -300}px)`;
         elementRef.current.style.opacity = "0";
       }
@@ -157,14 +190,8 @@ function SwipeableToast({
 
   // Click to dismiss (works on desktop and mobile)
   const handleClick = () => {
-    if (!swiping && Math.abs(currentX.current) < 10) {
-      setDismissed(true);
-      if (elementRef.current) {
-        elementRef.current.style.transition = "opacity 0.15s, transform 0.15s";
-        elementRef.current.style.opacity = "0";
-        elementRef.current.style.transform = "scale(0.95)";
-      }
-      setTimeout(onDismiss, 150);
+    if (!swiping && Math.abs(currentX.current) < 10 && !exiting) {
+      onDismiss(); // This will trigger isExiting which triggers animateExit
     }
   };
 

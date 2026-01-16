@@ -50,7 +50,7 @@ type Filter = "all" | "pending" | "repaid";
 function DashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { showToast, dismissToast } = useToast();
+  const { showToast } = useToast();
   const [user, setUser] = useState<User | null>(null);
   const [owed, setOwed] = useState<IOU[]>([]);
   const [owing, setOwing] = useState<IOU[]>([]);
@@ -266,9 +266,8 @@ function DashboardContent() {
       return;
     }
 
-    // Show toast with undo option
+    // Show toast with undo option (auto-dismisses after 5s)
     showToast("IOU archived", {
-      persistent: true,
       action: {
         label: "Undo",
         onClick: async () => {
@@ -289,11 +288,6 @@ function DashboardContent() {
         },
       },
     });
-
-    // Auto-dismiss after 5 seconds
-    setTimeout(() => {
-      // Toast will auto-dismiss when user interacts or after timeout
-    }, 5000);
   }
 
   async function handleUnarchive(iouId: string) {

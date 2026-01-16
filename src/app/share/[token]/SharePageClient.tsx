@@ -212,8 +212,8 @@ export default function SharePageClient({ token }: Props) {
             <Link
               href="/"
               onClick={() => {
-                // Store the share token so we can redirect back after login
-                sessionStorage.setItem("pendingClaimToken", token);
+                // Store the IOU ID so we can auto-claim after login
+                sessionStorage.setItem("pendingClaimIOUId", iou.id);
               }}
               className="inline-block w-full py-3 bg-[var(--color-accent)] text-[var(--color-bg)] text-center rounded-full hover:opacity-80 transition-opacity font-medium"
             >

@@ -25,15 +25,20 @@ export default function Home() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [currentPinForUpgrade, setCurrentPinForUpgrade] = useState("");
 
-  // Helper to redirect after login - checks for pending claim
-  function redirectAfterLogin() {
-    const pendingClaimToken = sessionStorage.getItem("pendingClaimToken");
-    if (pendingClaimToken) {
-      sessionStorage.removeItem("pendingClaimToken");
-      router.push(`/share/${pendingClaimToken}`);
-    } else {
-      router.push("/dashboard");
+  // Helper to redirect after login - auto-claims pending IOU if any
+  async function redirectAfterLogin() {
+    const pendingClaimIOUId = sessionStorage.getItem("pendingClaimIOUId");
+    if (pendingClaimIOUId) {
+      sessionStorage.removeItem("pendingClaimIOUId");
+      // Auto-claim the IOU
+      try {
+        await fetch(`/api/ious/${pendingClaimIOUId}/claim`, { method: "POST" });
+        // Claim succeeded or failed - either way go to dashboard
+      } catch {
+        // Silently fail - user can claim manually if needed
+      }
     }
+    router.push("/dashboard");
   }
 
   // Focus appropriate input when step changes
@@ -129,7 +134,7 @@ export default function Home() {
         setCurrentPinForUpgrade(pin);
         setShowUpgradeModal(true);
       } else {
-        redirectAfterLogin();
+        await redirectAfterLogin();
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -153,7 +158,7 @@ export default function Home() {
         return false;
       }
 
-      redirectAfterLogin();
+      await redirectAfterLogin();
       return true;
     } catch {
       return false;

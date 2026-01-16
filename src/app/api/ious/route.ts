@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createIOU, getIOUsByUser, getUserById, enrichIOU } from "@/lib/db";
 import { getAuthenticatedUserId } from "@/lib/session";
+import { normalizePhone } from "@/lib/utils";
 
 export async function GET(request: NextRequest) {
   try {
@@ -55,13 +56,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Normalize phone number if provided (must have at least some digits)
-    const digits = toPhone ? toPhone.replace(/\D/g, "") : "";
-    const normalizedPhone = digits.length > 0 ? digits : null;
+    // Normalize phone number (strips country code, non-digits)
+    const normalizedToPhone = normalizePhone(toPhone);
 
     const iou = await createIOU(
       userId,
-      normalizedPhone,
+      normalizedToPhone,
       description || null,
       photoUrl
     );

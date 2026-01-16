@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkPhoneExists } from "@/lib/db";
 import { checkPhoneCheckRateLimit } from "@/lib/ratelimit";
+import { normalizePhone } from "@/lib/utils";
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,8 +11,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Phone required" }, { status: 400 });
     }
 
-    // Normalize phone number (remove non-digits)
-    const normalizedPhone = phone.replace(/\D/g, "");
+    // Normalize phone number (strips country code, non-digits)
+    const normalizedPhone = normalizePhone(phone) || "";
 
     // Rate limit to prevent phone enumeration attacks (separate from PIN attempts)
     const rateLimitResult = await checkPhoneCheckRateLimit(normalizedPhone);

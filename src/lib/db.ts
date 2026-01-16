@@ -1,5 +1,6 @@
 import { getSupabase } from "./supabase";
 import bcrypt from "bcryptjs";
+import { normalizePhone } from "./utils";
 
 export interface User {
   id: string;
@@ -445,16 +446,18 @@ export async function getContactsForUser(userId: string): Promise<Contact[]> {
     return joined;
   }
 
-  // Build contacts map (keyed by phone)
+  // Build contacts map (keyed by normalized phone)
   const contactsMap = new Map<string, Contact>();
+  const userPhoneNormalized = normalizePhone(user.phone);
 
   // From IOUs where user owes someone
   for (const iou of owedIOUs || []) {
-    const phone = iou.to_phone;
+    const rawPhone = iou.to_phone;
     const toUser = extractUser(iou.to_user as JoinedUser);
+    const phone = normalizePhone(rawPhone) || normalizePhone(toUser?.phone);
     
     // Skip if no phone or self
-    if (!phone || phone === user.phone) continue;
+    if (!phone || phone === userPhoneNormalized) continue;
 
     if (!contactsMap.has(phone)) {
       contactsMap.set(phone, {
@@ -478,12 +481,14 @@ export async function getContactsForUser(userId: string): Promise<Contact[]> {
     const fromUser = extractUser(iou.from_user as JoinedUser);
     if (!fromUser) continue;
     
-    // Skip self
-    if (fromUser.phone === user.phone) continue;
+    const phone = normalizePhone(fromUser.phone);
+    
+    // Skip self or invalid
+    if (!phone || phone === userPhoneNormalized) continue;
 
-    if (!contactsMap.has(fromUser.phone)) {
-      contactsMap.set(fromUser.phone, {
-        phone: fromUser.phone,
+    if (!contactsMap.has(phone)) {
+      contactsMap.set(phone, {
+        phone,
         displayName: fromUser.display_name,
         isRegistered: true,
       });

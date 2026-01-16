@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createUser, verifyUser, setUserPin } from "@/lib/db";
 import { setSessionCookie } from "@/lib/session";
 import { checkAuthRateLimit } from "@/lib/ratelimit";
+import { normalizePhone } from "@/lib/utils";
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,8 +15,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Normalize phone number (remove non-digits)
-    const normalizedPhone = phone.replace(/\D/g, "");
+    // Normalize phone number (strips country code, non-digits)
+    const normalizedPhone = normalizePhone(phone) || "";
 
     // Rate limit check for all auth attempts (brute-force protection)
     const rateLimitResult = await checkAuthRateLimit(normalizedPhone);

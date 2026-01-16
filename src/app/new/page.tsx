@@ -133,7 +133,7 @@ export default function NewIOU() {
     }
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent | React.MouseEvent, shouldShare: boolean = false) {
     e.preventDefault();
     setError("");
 
@@ -180,16 +180,36 @@ export default function NewIOU() {
         throw new Error("Failed to create IOU");
       }
 
+      const data = await res.json();
+
+      // If sharing, open native share dialog before navigating
+      if (shouldShare && data.iou?.share_token) {
+        const url = `${window.location.origin}/share/${data.iou.share_token}`;
+        const recipientName = searchValue || "someone";
+        
+        try {
+          if (navigator.share) {
+            // Native share (works on HTTPS)
+            await navigator.share({
+              url,
+              title: "IOU",
+              text: `I owe ${recipientName}: ${description}`,
+            });
+          } else {
+            // Fallback: show prompt with URL for manual copy (works on HTTP)
+            prompt("Copy this link to share:", url);
+          }
+        } catch {
+          // User cancelled share - still navigate
+        }
+      }
+
       router.push("/dashboard");
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
-  }
-
-  function handleCancel() {
-    router.push("/dashboard");
   }
 
   // Shared styles
@@ -204,8 +224,16 @@ export default function NewIOU() {
   return (
     <div className="h-dvh flex flex-col px-2">
       {/* Header */}
-      <header className="pt-8 pb-4 text-center shrink-0">
+      <header className="pt-8 pb-4 text-center shrink-0 relative">
         <h1 className="text-lg font-medium">New <Logo /></h1>
+        <button
+          type="button"
+          onClick={() => router.push("/dashboard")}
+          className="absolute right-2 top-8 p-2 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+          aria-label="Close"
+        >
+          ✕
+        </button>
       </header>
 
       {/* Spacer - pushes form to bottom */}
@@ -317,11 +345,21 @@ export default function NewIOU() {
 
           {/* Buttons */}
           <div className="flex gap-3">
-            <button type="button" onClick={handleCancel} className={secondaryButtonClass}>
-              Cancel
-            </button>
-            <button type="submit" disabled={loading} className={primaryButtonClass}>
+            <button 
+              type="button" 
+              onClick={(e) => handleSubmit(e, false)} 
+              disabled={loading} 
+              className={secondaryButtonClass}
+            >
               {loading ? "..." : "Create"}
+            </button>
+            <button 
+              type="button" 
+              onClick={(e) => handleSubmit(e, true)} 
+              disabled={loading} 
+              className={primaryButtonClass}
+            >
+              {loading ? "..." : "Create & Share"}
             </button>
           </div>
         </form>

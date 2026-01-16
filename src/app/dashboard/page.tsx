@@ -374,7 +374,7 @@ export default function Dashboard() {
       {/* Fixed bottom button */}
       <Link
         href="/new"
-        className="fixed bottom-0 left-0 right-0 mx-2 mt-2 mb-2 py-4 bg-[var(--color-accent)] text-[var(--color-bg)] text-center text-sm font-bold rounded-full hover:opacity-90 transition-opacity"
+        className="fixed bottom-2 left-1/2 -translate-x-1/2 px-8 py-4 bg-[var(--color-accent)] text-[var(--color-bg)] text-center text-sm font-bold rounded-full hover:opacity-90 transition-opacity"
       >
         + NEW
       </Link>

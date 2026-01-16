@@ -6,6 +6,7 @@ import Logo from "@/components/Logo";
 import ImageWithLoader from "@/components/ImageWithLoader";
 
 interface Contact {
+  id: string | null;
   phone: string;
   displayName: string | null;
   isRegistered: boolean;
@@ -18,7 +19,7 @@ export default function NewIOU() {
 
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [searchValue, setSearchValue] = useState("");
-  const [toPhone, setToPhone] = useState("");
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null); // Known user selected
   const [showDropdown, setShowDropdown] = useState(false);
   const [description, setDescription] = useState("");
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
@@ -42,12 +43,12 @@ export default function NewIOU() {
     fetchContacts();
   }, []);
 
-  // Filter contacts based on search
+  // Filter contacts based on search (only search by name, not phone)
   const filteredContacts = contacts.filter((contact) => {
-    const search = searchValue.toLowerCase();
+    const search = searchValue.toLowerCase().trim();
+    if (!search) return true; // Show all if empty
     const nameMatch = contact.displayName?.toLowerCase().includes(search);
-    const phoneMatch = contact.phone.includes(search.replace(/\D/g, ""));
-    return nameMatch || phoneMatch;
+    return nameMatch;
   });
 
   // Check for duplicate names (for disambiguation)
@@ -73,30 +74,16 @@ export default function NewIOU() {
   }
 
   function handleSelectContact(contact: Contact) {
-    setSearchValue(getDisplayLabel(contact));
-    setToPhone(contact.phone);
+    setSearchValue(contact.displayName || contact.phone);
+    setSelectedContact(contact);
     setShowDropdown(false);
   }
 
   function handleInputChange(value: string) {
     setSearchValue(value);
     setShowDropdown(true);
-
-    const digitsOnly = value.replace(/\D/g, "");
-    if (digitsOnly.length >= 7) {
-      setToPhone(digitsOnly);
-    } else {
-      const matchedContact = contacts.find(
-        (c) =>
-          c.displayName?.toLowerCase() === value.toLowerCase() ||
-          c.phone === digitsOnly
-      );
-      if (matchedContact) {
-        setToPhone(matchedContact.phone);
-      } else if (digitsOnly.length === 0) {
-        setToPhone("");
-      }
-    }
+    // Clear selected contact when user types (they might be entering a new name)
+    setSelectedContact(null);
   }
 
   function handleInputBlur() {
@@ -142,31 +129,19 @@ export default function NewIOU() {
       return;
     }
 
-    // Validate recipient field if something was entered
-    if (searchValue && !toPhone) {
-      // User typed something but didn't select a contact
-      // Check if it looks like a phone number (has digits)
-      const digits = searchValue.replace(/\D/g, "");
-      if (digits.length < 10) {
-        setError("Please enter a valid phone number or select a contact");
-        return;
-      }
-      // If it has enough digits, use it as a phone number
-      setToPhone(digits);
-    }
+    // Determine recipient: either known user ID or name string
+    const toUserId = selectedContact?.id || null;
+    const toName = !toUserId ? searchValue.trim() || null : null;
 
     setLoading(true);
-
-    // Use the validated phone number
-    const phoneToSubmit = toPhone || (searchValue ? searchValue.replace(/\D/g, "") : null);
-    const validPhone = phoneToSubmit && phoneToSubmit.length >= 10 ? phoneToSubmit : null;
 
     try {
       const res = await fetch("/api/ious", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          toPhone: validPhone,
+          toUserId,
+          toName,
           description: description || null,
           photoUrl,
         }),
@@ -257,7 +232,7 @@ export default function NewIOU() {
                 onChange={(e) => handleInputChange(e.target.value)}
                 onFocus={() => setShowDropdown(true)}
                 onBlur={handleInputBlur}
-                placeholder="Name or phone number"
+                placeholder="Name (optional)"
                 autoComplete="off"
                 className={inputClass}
               />

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Loader from "@/components/Loader";
 import Logo from "@/components/Logo";
@@ -29,6 +30,7 @@ interface IOU {
   from_user_id: string;
   to_phone: string | null;
   to_user_id: string | null;
+  to_name: string | null;
   description: string | null;
   photo_url: string | null;
   status: "pending" | "repaid";
@@ -45,23 +47,34 @@ interface Props {
 
 export default function SharePageClient({ token }: Props) {
   useEnableScroll();
+  const router = useRouter();
   const [iou, setIou] = useState<IOU | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [claiming, setClaiming] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    async function fetchIOU() {
+    async function fetchData() {
       try {
-        const res = await fetch(`/api/ious/share/${token}`);
-        if (!res.ok) {
-          if (res.status === 404) {
+        // Fetch IOU
+        const iouRes = await fetch(`/api/ious/share/${token}`);
+        if (!iouRes.ok) {
+          if (iouRes.status === 404) {
             setError("IOU not found");
             return;
           }
           throw new Error("Failed to fetch");
         }
-        const data = await res.json();
-        setIou(data.iou);
+        const iouData = await iouRes.json();
+        setIou(iouData.iou);
+
+        // Check if user is logged in
+        const userRes = await fetch("/api/auth/me");
+        if (userRes.ok) {
+          const userData = await userRes.json();
+          setCurrentUser(userData.user);
+        }
       } catch {
         setError("Something went wrong");
       } finally {
@@ -70,9 +83,39 @@ export default function SharePageClient({ token }: Props) {
     }
 
     if (token) {
-      fetchIOU();
+      fetchData();
     }
   }, [token]);
+
+  async function handleClaim() {
+    if (!iou) return;
+    
+    setClaiming(true);
+    try {
+      const res = await fetch(`/api/ious/${iou.id}/claim`, {
+        method: "POST",
+      });
+      
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error || "Failed to claim IOU");
+        return;
+      }
+      
+      // Redirect to dashboard after claiming
+      router.push("/dashboard");
+    } catch {
+      setError("Something went wrong");
+    } finally {
+      setClaiming(false);
+    }
+  }
+
+  // Can claim if: logged in, not the creator, and IOU is unclaimed
+  const canClaim = currentUser && 
+    iou && 
+    currentUser.id !== iou.from_user_id && 
+    !iou.to_user_id;
 
   if (loading) {
     return <Loader className="h-dvh" />;
@@ -141,15 +184,39 @@ export default function SharePageClient({ token }: Props) {
       </div>
 
       <div className="space-y-3 text-center">
-        <p className="text-sm text-[var(--color-text-muted)]">
-          Track your own IOUs with friends
-        </p>
-        <Link
-          href="/"
-          className="inline-block w-full py-3 bg-[var(--color-accent)] text-[var(--color-bg)] text-center rounded-full hover:opacity-80 transition-opacity font-medium"
-        >
-          Sign Up / Log In
-        </Link>
+        {canClaim ? (
+          <>
+            <p className="text-sm text-[var(--color-text-muted)]">
+              This IOU is for you! Claim it to add to your account.
+            </p>
+            <button
+              onClick={handleClaim}
+              disabled={claiming}
+              className="w-full py-3 bg-[var(--color-accent)] text-[var(--color-bg)] text-center rounded-full hover:opacity-80 transition-opacity font-medium disabled:opacity-50"
+            >
+              {claiming ? "Claiming..." : "Claim This IOU"}
+            </button>
+          </>
+        ) : currentUser ? (
+          <Link
+            href="/dashboard"
+            className="inline-block w-full py-3 bg-[var(--color-accent)] text-[var(--color-bg)] text-center rounded-full hover:opacity-80 transition-opacity font-medium"
+          >
+            Go to Dashboard
+          </Link>
+        ) : (
+          <>
+            <p className="text-sm text-[var(--color-text-muted)]">
+              Track your own IOUs with friends
+            </p>
+            <Link
+              href="/"
+              className="inline-block w-full py-3 bg-[var(--color-accent)] text-[var(--color-bg)] text-center rounded-full hover:opacity-80 transition-opacity font-medium"
+            >
+              Sign Up / Log In
+            </Link>
+          </>
+        )}
       </div>
     </div>
   );

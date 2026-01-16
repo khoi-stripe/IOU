@@ -15,6 +15,7 @@ export interface IOU {
   from_user_id: string;
   to_phone: string | null;
   to_user_id: string | null;
+  to_name: string | null; // Recipient name (shown until claimed)
   description: string | null;
   photo_url: string | null;
   status: "pending" | "repaid";
@@ -27,6 +28,7 @@ export interface IOU {
 }
 
 export interface Contact {
+  id: string | null; // User ID for pre-linking (null if not registered)
   phone: string;
   displayName: string | null;
   isRegistered: boolean;
@@ -219,31 +221,37 @@ export async function getUserById(id: string): Promise<User | null> {
 // IOU operations
 export async function createIOU(
   fromUserId: string,
-  toPhone: string | null,
-  description: string | null,
-  photoUrl?: string
+  options: {
+    toUserId?: string | null;  // Pre-linked to known user
+    toName?: string | null;    // Name for unclaimed IOUs
+    toPhone?: string | null;   // Legacy: phone-based linking
+    description: string | null;
+    photoUrl?: string;
+  }
 ): Promise<IOU> {
   const supabase = getSupabase();
   
-  // Check if toPhone matches an existing user
-  let toUserId: string | null = null;
-  if (toPhone) {
+  let finalToUserId: string | null = options.toUserId || null;
+  
+  // Legacy: Check if toPhone matches an existing user
+  if (!finalToUserId && options.toPhone) {
     const { data: toUser } = await supabase
       .from("iou_users")
       .select("id")
-      .eq("phone", toPhone)
+      .eq("phone", options.toPhone)
       .single();
-    toUserId = toUser?.id || null;
+    finalToUserId = toUser?.id || null;
   }
 
   const { data, error } = await supabase
     .from("iou_ious")
     .insert({
       from_user_id: fromUserId,
-      to_phone: toPhone,
-      to_user_id: toUserId,
-      description,
-      photo_url: photoUrl || null,
+      to_phone: options.toPhone || null,
+      to_user_id: finalToUserId,
+      to_name: options.toName || null,
+      description: options.description,
+      photo_url: options.photoUrl || null,
     })
     .select()
     .single();
@@ -253,14 +261,14 @@ export async function createIOU(
   const iou = data as IOU;
   
   // Create notification for the person who is owed (if they're a registered user)
-  if (toUserId) {
+  if (finalToUserId) {
     const fromUser = await getUserById(fromUserId);
     const fromName = fromUser?.display_name || "Someone";
-    const descText = description ? `: ${description}` : "";
+    const descText = options.description ? `: ${options.description}` : "";
     const message = `${fromName} owes you${descText}`;
     
     try {
-      await createNotification(toUserId, iou.id, "new_iou", message);
+      await createNotification(finalToUserId, iou.id, "new_iou", message);
     } catch (e) {
       // Don't fail the IOU creation if notification fails
       console.error("Failed to create notification:", e);
@@ -459,6 +467,69 @@ export async function linkIOUToUser(iouId: string, userId: string): Promise<void
     .is("to_user_id", null);
 }
 
+// Claim an IOU (for unclaimed IOUs shared via link)
+export async function claimIOU(
+  iouId: string, 
+  claimingUserId: string
+): Promise<{ success: boolean; error?: string; iou?: IOU }> {
+  const supabase = getSupabase();
+  
+  // Get the IOU first to validate
+  const { data: iou, error: fetchError } = await supabase
+    .from("iou_ious")
+    .select(`
+      *,
+      from_user:iou_users!iou_ious_from_user_id_fkey(*),
+      to_user:iou_users!iou_ious_to_user_id_fkey(*)
+    `)
+    .eq("id", iouId)
+    .single();
+  
+  if (fetchError || !iou) {
+    return { success: false, error: "IOU not found" };
+  }
+  
+  // Can't claim your own IOU
+  if (iou.from_user_id === claimingUserId) {
+    return { success: false, error: "Cannot claim your own IOU" };
+  }
+  
+  // Can't claim if already claimed
+  if (iou.to_user_id) {
+    return { success: false, error: "IOU has already been claimed" };
+  }
+  
+  // Claim it
+  const { data: updatedIOU, error: updateError } = await supabase
+    .from("iou_ious")
+    .update({ to_user_id: claimingUserId })
+    .eq("id", iouId)
+    .select(`
+      *,
+      from_user:iou_users!iou_ious_from_user_id_fkey(*),
+      to_user:iou_users!iou_ious_to_user_id_fkey(*)
+    `)
+    .single();
+  
+  if (updateError) {
+    return { success: false, error: "Failed to claim IOU" };
+  }
+  
+  // Create notification for the creator
+  const claimingUser = await getUserById(claimingUserId);
+  const claimingName = claimingUser?.display_name || "Someone";
+  const descText = iou.description ? `: ${iou.description}` : "";
+  const message = `${claimingName} claimed your IOU${descText}`;
+  
+  try {
+    await createNotification(iou.from_user_id, iouId, "new_iou", message);
+  } catch (e) {
+    console.error("Failed to create claim notification:", e);
+  }
+  
+  return { success: true, iou: updatedIOU as IOU };
+}
+
 // Helper to enrich IOU (already done via joins, but kept for compatibility)
 export function enrichIOU(iou: IOU): IOU {
   return iou;
@@ -475,7 +546,7 @@ export async function getContactsForUser(userId: string): Promise<Contact[]> {
     .from("iou_ious")
     .select(`
       to_phone,
-      to_user:iou_users!iou_ious_to_user_id_fkey(phone, display_name)
+      to_user:iou_users!iou_ious_to_user_id_fkey(id, phone, display_name)
     `)
     .eq("from_user_id", userId);
 
@@ -483,20 +554,20 @@ export async function getContactsForUser(userId: string): Promise<Contact[]> {
   const { data: owingByUserId } = await supabase
     .from("iou_ious")
     .select(`
-      from_user:iou_users!iou_ious_from_user_id_fkey(phone, display_name)
+      from_user:iou_users!iou_ious_from_user_id_fkey(id, phone, display_name)
     `)
     .eq("to_user_id", userId);
 
   const { data: owingByPhone } = await supabase
     .from("iou_ious")
     .select(`
-      from_user:iou_users!iou_ious_from_user_id_fkey(phone, display_name)
+      from_user:iou_users!iou_ious_from_user_id_fkey(id, phone, display_name)
     `)
     .eq("to_phone", user.phone);
 
   // Helper to extract user from Supabase join (could be object or array)
-  type JoinedUser = { phone: string; display_name: string } | { phone: string; display_name: string }[] | null;
-  function extractUser(joined: JoinedUser): { phone: string; display_name: string } | null {
+  type JoinedUser = { id: string; phone: string; display_name: string } | { id: string; phone: string; display_name: string }[] | null;
+  function extractUser(joined: JoinedUser): { id: string; phone: string; display_name: string } | null {
     if (!joined) return null;
     if (Array.isArray(joined)) return joined[0] || null;
     return joined;
@@ -517,6 +588,7 @@ export async function getContactsForUser(userId: string): Promise<Contact[]> {
 
     if (!contactsMap.has(phone)) {
       contactsMap.set(phone, {
+        id: toUser?.id || null,
         phone,
         displayName: toUser?.display_name || null,
         isRegistered: !!toUser,
@@ -524,6 +596,7 @@ export async function getContactsForUser(userId: string): Promise<Contact[]> {
     } else if (toUser && !contactsMap.get(phone)!.displayName) {
       // Update with name if we now have it
       contactsMap.set(phone, {
+        id: toUser.id,
         phone,
         displayName: toUser.display_name,
         isRegistered: true,
@@ -544,6 +617,7 @@ export async function getContactsForUser(userId: string): Promise<Contact[]> {
 
     if (!contactsMap.has(phone)) {
       contactsMap.set(phone, {
+        id: fromUser.id,
         phone,
         displayName: fromUser.display_name,
         isRegistered: true,
@@ -560,7 +634,7 @@ export async function getContactsForUser(userId: string): Promise<Contact[]> {
     // Look up users by phone number
     const { data: registeredUsers } = await supabase
       .from("iou_users")
-      .select("phone, display_name")
+      .select("id, phone, display_name")
       .in("phone", unregisteredPhones);
     
     if (registeredUsers && registeredUsers.length > 0) {
@@ -568,6 +642,7 @@ export async function getContactsForUser(userId: string): Promise<Contact[]> {
         const normalizedPhone = normalizePhone(regUser.phone);
         if (normalizedPhone && contactsMap.has(normalizedPhone)) {
           contactsMap.set(normalizedPhone, {
+            id: regUser.id,
             phone: normalizedPhone,
             displayName: regUser.display_name,
             isRegistered: true,

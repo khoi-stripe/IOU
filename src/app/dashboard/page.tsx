@@ -22,6 +22,7 @@ interface IOU {
   from_user_id: string;
   to_phone: string | null;
   to_user_id: string | null;
+  to_name: string | null;
   description: string | null;
   photo_url: string | null;
   status: "pending" | "repaid";
@@ -395,9 +396,14 @@ const IOUCard = memo(function IOUCard({
   onMarkRepaid: () => void;
   onShare: () => void;
 }) {
+  // For "owe" IOUs: show claimed user's name, or to_name, or phone
+  // For "owed" IOUs: show the creator's name
   const personName = isOwe
-    ? iou.to_user?.display_name || (iou.to_phone ? formatPhone(iou.to_phone) : null)
+    ? iou.to_user?.display_name || iou.to_name || (iou.to_phone ? formatPhone(iou.to_phone) : null)
     : iou.from_user?.display_name || "Someone";
+  
+  // Show "(unclaimed)" indicator for unclaimed IOUs
+  const isUnclaimed = isOwe && !iou.to_user_id;
 
   const isPending = iou.status === "pending";
 
@@ -439,15 +445,19 @@ const IOUCard = memo(function IOUCard({
 
       {/* Content */}
       <div>
-        {personName && (
+        {personName ? (
           <p className="text-sm">
             {isOwe ? (
-              <>You owe <span className="font-bold">{personName}</span></>
+              <>You owe <span className="font-bold">{personName}</span>{isUnclaimed && <span className="text-[var(--color-text-muted)] text-xs ml-1">(unclaimed)</span>}</>
             ) : (
               <><span className="font-bold">{personName}</span> owes you</>
             )}
           </p>
-        )}
+        ) : isOwe ? (
+          <p className="text-sm">
+            You owe someone{isUnclaimed && <span className="text-[var(--color-text-muted)] text-xs ml-1">(unclaimed)</span>}
+          </p>
+        ) : null}
         {iou.description && (
           <p className="text-[var(--color-text-muted)] text-sm">{iou.description}</p>
         )}

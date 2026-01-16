@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const { toPhone, description, photoUrl } = await request.json();
+    const { toUserId, toName, toPhone, description, photoUrl } = await request.json();
 
     // Description is required
     if (!description) {
@@ -56,15 +56,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Normalize phone number (strips country code, non-digits)
-    const normalizedToPhone = normalizePhone(toPhone);
+    // Normalize phone number if provided (legacy support)
+    const normalizedToPhone = toPhone ? normalizePhone(toPhone) : null;
 
-    const iou = await createIOU(
-      userId,
-      normalizedToPhone,
-      description || null,
-      photoUrl
-    );
+    const iou = await createIOU(userId, {
+      toUserId: toUserId || null,
+      toName: toName || null,
+      toPhone: normalizedToPhone,
+      description: description || null,
+      photoUrl,
+    });
 
     return NextResponse.json({ iou: enrichIOU(iou) });
   } catch (error) {

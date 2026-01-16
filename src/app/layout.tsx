@@ -23,7 +23,7 @@ export default function RootLayout({
     <html lang="en" className={`${ibmPlexMono.variable} h-full`}>
       <body className="h-full antialiased">
         <Providers>
-          <main className="max-w-md mx-auto px-2 h-full">
+          <main className="max-w-md mx-auto px-2 min-h-full">
             {children}
           </main>
         </Providers>

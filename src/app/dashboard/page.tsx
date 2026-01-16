@@ -155,22 +155,18 @@ export default function Dashboard() {
     fetchData(true);
   }, [activeTab, hasMoreOwed, hasMoreOwing, loadingMore, fetchData]);
 
-  // Scroll detection for infinite scroll
+  // Scroll detection for infinite scroll (using window scroll)
   useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-
     function handleScroll() {
-      if (!container) return;
-      const { scrollTop, scrollHeight, clientHeight } = container;
+      const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
       // Load more when within 200px of bottom
       if (scrollHeight - scrollTop - clientHeight < 200) {
         loadMore();
       }
     }
 
-    container.addEventListener("scroll", handleScroll);
-    return () => container.removeEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, [loadMore]);
 
   async function handleMarkRepaid(id: string) {
@@ -238,7 +234,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="flex flex-col h-full pt-4 pb-20">
+    <div className="flex flex-col min-h-full pt-4 pb-20">
       {/* Balance Modal */}
       {showBalance && (
         <BalanceModal
@@ -250,27 +246,27 @@ export default function Dashboard() {
         />
       )}
 
-      {/* Header */}
-      <header className="flex items-center justify-between px-4 mb-4 shrink-0">
-        <button onClick={() => setShowBalance(true)} className="text-lg hover:opacity-60 transition-opacity">
-          <Logo />
-        </button>
-        <button 
-          onClick={handleLogout}
-          className="text-sm font-medium hover:underline underline-offset-4"
-        >
-          {user?.display_name} ↗
-        </button>
-      </header>
+      {/* Sticky header + tabs container */}
+      <div className="sticky top-0 z-20 bg-[var(--color-bg)] -mt-4 pt-4">
+        {/* Header */}
+        <header className="flex items-center justify-between px-4 mb-4">
+          <button onClick={() => setShowBalance(true)} className="text-lg hover:opacity-60 transition-opacity">
+            <Logo />
+          </button>
+          <button 
+            onClick={handleLogout}
+            className="text-sm font-medium hover:underline underline-offset-4"
+          >
+            {user?.display_name} ↗
+          </button>
+        </header>
 
-      {/* Tabs + Content Container */}
-      <div className="flex flex-col flex-1 min-h-0">
         {/* Tabs */}
         <div className="flex gap-2 shrink-0">
           <button
             onClick={() => {
               setActiveTab("owe");
-              scrollContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+              window.scrollTo({ top: 0, behavior: "smooth" });
             }}
             className={`flex-1 py-4 px-4 text-left transition-colors rounded-t ${
               activeTab === "owe"
@@ -287,7 +283,7 @@ export default function Dashboard() {
           <button
             onClick={() => {
               setActiveTab("owed");
-              scrollContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+              window.scrollTo({ top: 0, behavior: "smooth" });
             }}
             className={`flex-1 py-4 px-4 text-left transition-colors rounded-t ${
               activeTab === "owed"
@@ -302,11 +298,15 @@ export default function Dashboard() {
             </div>
           </button>
         </div>
+        {/* Spacer with top and side borders */}
+        <div className="h-4 border-t border-l border-r border-[#808080]" />
+      </div>
 
-        {/* Content Container */}
-        <div className="border border-[#808080] flex flex-col flex-1 min-h-0 rounded-b">
-          {/* Scrollable content (filters + list) */}
-          <div ref={scrollContainerRef} className="overflow-y-auto flex-1 min-h-0 mt-4">
+      {/* Content Container */}
+      <div className="flex flex-col flex-1">
+        <div className="border-l border-r border-b border-[#808080] flex flex-col flex-1 rounded-b">
+          {/* Content (filters + list) */}
+          <div ref={scrollContainerRef} className="flex-1">
             {/* Filters */}
             <div className="flex gap-3 text-xs px-4 bg-[var(--color-bg)]">
               <button
@@ -374,7 +374,7 @@ export default function Dashboard() {
       {/* Fixed bottom button */}
       <Link
         href="/new"
-        className="fixed bottom-0 left-0 right-0 mx-2 mt-2 mb-4 py-4 bg-[var(--color-accent)] text-[var(--color-bg)] text-center text-sm font-bold rounded-full hover:opacity-90 transition-opacity"
+        className="fixed bottom-0 left-0 right-0 mx-2 mt-2 mb-2 py-4 bg-[var(--color-accent)] text-[var(--color-bg)] text-center text-sm font-bold rounded-full hover:opacity-90 transition-opacity"
       >
         + NEW
       </Link>

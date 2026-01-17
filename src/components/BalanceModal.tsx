@@ -71,12 +71,12 @@ export default function BalanceModal({ oweCount, owedCount, oweRepaidCount, owed
       <div className="flex flex-col w-full max-w-md px-2">
         {/* Header */}
         <header className={`flex items-center justify-between px-4 pt-4 shrink-0 transition-opacity duration-300 ${isClosing ? "opacity-0" : ""}`}>
-          <div className="text-lg -mt-[9px]">
+          <div className="text-lg -mt-[7px]">
             <Logo /> balance
           </div>
           <button
             onClick={handleClose}
-            className="text-2xl font-bold w-10 h-10 flex items-center justify-center hover:opacity-60 transition-opacity"
+            className="text-2xl font-bold w-10 h-10 flex items-center justify-center hover:opacity-60 transition-opacity -mt-[7px] -mr-[9px]"
           >
             ×
           </button>

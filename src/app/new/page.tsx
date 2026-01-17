@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Logo from "@/components/Logo";
 import ImageWithLoader from "@/components/ImageWithLoader";
+import ButtonLoader from "@/components/ButtonLoader";
 
 interface Contact {
   id: string;
@@ -305,7 +306,7 @@ export default function NewIOU() {
                 disabled={loading} 
                 className={primaryButtonClass + " w-full"}
               >
-                {loading ? "..." : "Create"}
+                {loading ? <ButtonLoader /> : "Create"}
               </button>
             ) : (
               // Unknown user - need to share for them to claim
@@ -315,7 +316,7 @@ export default function NewIOU() {
                 disabled={loading} 
                 className={primaryButtonClass + " w-full"}
               >
-                {loading ? "..." : "Create & Share"}
+                {loading ? <ButtonLoader /> : "Create & Share"}
               </button>
             )}
           </div>

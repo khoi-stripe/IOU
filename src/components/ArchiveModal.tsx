@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import Logo from "./Logo";
 import ImageWithLoader from "./ImageWithLoader";
 import HoldToConfirmButton from "./HoldToConfirmButton";
+import ButtonLoader from "./ButtonLoader";
 
 interface User {
   id: string;
@@ -33,12 +34,18 @@ interface ArchiveModalProps {
   onUnarchive: (iouId: string) => void;
 }
 
+type Filter = "all" | "pending" | "repaid";
+
 export default function ArchiveModal({ userId, onClose, onUnarchive }: ArchiveModalProps) {
   const [ious, setIous] = useState<IOU[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isClosing, setIsClosing] = useState(false);
+  const [filter, setFilter] = useState<Filter>("all");
 
   const handleClose = useCallback(() => {
-    onClose();
+    setIsClosing(true);
+    // Wait for animation to complete before actually closing
+    setTimeout(onClose, 300);
   }, [onClose]);
 
   // Fetch archived IOUs
@@ -99,31 +106,81 @@ export default function ArchiveModal({ userId, onClose, onUnarchive }: ArchiveMo
     <div className="fixed inset-0 z-50 bg-[var(--color-bg)] flex justify-center">
       <div className="flex flex-col w-full max-w-md px-2 h-full">
         {/* Header */}
-        <header className="flex items-center justify-between px-4 pt-4 shrink-0">
-          <div className="text-lg -mt-[9px]">
+        <header className={`flex items-center justify-between px-4 pt-4 shrink-0 transition-opacity duration-300 ${isClosing ? "opacity-0" : ""}`}>
+          <div className="text-lg -mt-[7px]">
             <Logo /> archive
           </div>
           <button
             onClick={handleClose}
-            className="text-2xl font-bold w-10 h-10 flex items-center justify-center hover:opacity-60 transition-opacity"
+            className="text-2xl font-bold w-10 h-10 flex items-center justify-center hover:opacity-60 transition-opacity -mt-[7px] -mr-[9px]"
           >
             ×
           </button>
         </header>
 
+        {/* Filters */}
+        <div className={`flex gap-3 text-xs px-4 pt-4 transition-opacity duration-300 ${isClosing ? "opacity-0" : ""}`}>
+          <button
+            onClick={() => setFilter("all")}
+            className={`transition-colors flex items-center gap-1.5 pb-1 text-[var(--color-text)] ${
+              filter === "all" ? "border-b border-current" : ""
+            }`}
+          >
+            <span 
+              className="inline-block w-2.5 h-2.5 rounded-full border border-current"
+              style={{ background: "linear-gradient(to right, currentColor 50%, transparent 50%)" }}
+            />
+            ALL
+          </button>
+          <button
+            onClick={() => setFilter("pending")}
+            className={`transition-colors flex items-center gap-1.5 pb-1 text-[var(--color-text)] ${
+              filter === "pending" ? "border-b border-current" : ""
+            }`}
+          >
+            <span className="inline-block w-2.5 h-2.5 rounded-full border border-current" />
+            OUTSTANDING
+          </button>
+          <button
+            onClick={() => setFilter("repaid")}
+            className={`transition-colors flex items-center gap-1.5 pb-1 text-[var(--color-text)] ${
+              filter === "repaid" ? "border-b border-current" : ""
+            }`}
+          >
+            <span className="inline-block w-2.5 h-2.5 rounded-full bg-current" />
+            REPAID
+          </button>
+        </div>
+
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-4 py-4">
-          {loading ? (
-            <div className="flex items-center justify-center h-32">
-              <p className="text-[var(--color-text-muted)]">Loading...</p>
-            </div>
-          ) : ious.length === 0 ? (
-            <div className="flex items-center justify-center h-32">
-              <p className="text-[var(--color-text-muted)]">No archived IOUs</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {ious.map((iou) => {
+        <div className={`flex-1 overflow-y-auto px-4 py-4 transition-opacity duration-300 ${isClosing ? "opacity-0" : ""}`}>
+          {(() => {
+            const filtered = ious.filter((i) => {
+              if (filter === "all") return true;
+              return i.status === filter;
+            });
+            
+            if (loading) {
+              return (
+                <div className="flex items-center justify-center h-32">
+                  <span className="text-[var(--color-text-muted)]"><ButtonLoader /></span>
+                </div>
+              );
+            }
+            
+            if (filtered.length === 0) {
+              return (
+                <div className="flex items-center justify-center h-32">
+                  <p className="text-[var(--color-text-muted)]">
+                    {ious.length === 0 ? "No archived IOUs" : "No matching IOUs"}
+                  </p>
+                </div>
+              );
+            }
+            
+            return (
+              <div className="space-y-3">
+                {filtered.map((iou) => {
                 const isOwe = iou.from_user_id === userId;
                 const personName = isOwe
                   ? iou.to_user?.display_name || iou.to_name || (iou.to_phone ? formatPhone(iou.to_phone) : null)
@@ -189,8 +246,9 @@ export default function ArchiveModal({ userId, onClose, onUnarchive }: ArchiveMo
                   </div>
                 );
               })}
-            </div>
-          )}
+              </div>
+            );
+          })()}
         </div>
       </div>
     </div>

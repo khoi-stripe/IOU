@@ -10,6 +10,7 @@ import ImageWithLoader from "@/components/ImageWithLoader";
 import BalanceModal from "@/components/BalanceModal";
 import ArchiveModal from "@/components/ArchiveModal";
 import HoldToConfirmButton from "@/components/HoldToConfirmButton";
+import ButtonLoader from "@/components/ButtonLoader";
 
 const PAGE_SIZE = 10;
 
@@ -489,7 +490,7 @@ function DashboardContent() {
                 ))}
                 {loadingMore && (
                   <div className="py-4 text-center">
-                    <span className="text-sm text-[var(--color-text-muted)]">Loading...</span>
+                    <span className="text-sm text-[var(--color-text-muted)]"><ButtonLoader /></span>
                   </div>
                 )}
               </>

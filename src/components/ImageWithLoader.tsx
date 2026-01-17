@@ -53,7 +53,7 @@ export default function ImageWithLoader({ src, alt, className = "" }: ImageWithL
   return (
     <>
       <div 
-        className={`relative bg-white overflow-hidden cursor-pointer ${className}`}
+        className={`relative bg-white overflow-hidden cursor-pointer rounded-[2px] ${className}`}
         onClick={() => loaded && setLightboxOpen(true)}
       >
         {/* Bouncing emoji loader */}

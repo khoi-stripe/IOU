@@ -6,6 +6,7 @@ import Link from "next/link";
 import Loader from "@/components/Loader";
 import Logo from "@/components/Logo";
 import ImageWithLoader from "@/components/ImageWithLoader";
+import ButtonLoader from "@/components/ButtonLoader";
 
 // Enable scrolling on share pages (overrides global overflow:hidden)
 function useEnableScroll() {
@@ -209,7 +210,7 @@ export default function SharePageClient({ token }: Props) {
               disabled={claiming}
               className="w-full py-3 bg-[var(--color-accent)] text-[var(--color-bg)] text-center rounded-full hover:opacity-80 transition-opacity font-medium disabled:opacity-50"
             >
-              {claiming ? "Claiming..." : "Claim This IOU"}
+              {claiming ? <ButtonLoader /> : "Claim This IOU"}
             </button>
             <button
               onClick={async () => {

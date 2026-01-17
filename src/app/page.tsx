@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Logo from "@/components/Logo";
 import PinUpgradeModal from "@/components/PinUpgradeModal";
+import ButtonLoader from "@/components/ButtonLoader";
 
 type Step = "phone" | "signup" | "login" | "setpin";
 
@@ -243,7 +244,7 @@ export default function Home() {
             tabIndex={-1}
             className={primaryButtonClass + " w-full"}
           >
-            {loading ? "..." : "Continue"}
+            {loading ? <ButtonLoader /> : "Continue"}
           </button>
         </form>
 
@@ -288,7 +289,7 @@ export default function Home() {
               disabled={loading || pin.length < minPinLength}
               className={primaryButtonClass}
             >
-              {loading ? "..." : "Log In"}
+              {loading ? <ButtonLoader /> : "Log In"}
             </button>
           </div>
         </form>
@@ -374,7 +375,7 @@ export default function Home() {
               }
               className={primaryButtonClass}
             >
-              {loading ? "..." : "Create Account"}
+              {loading ? <ButtonLoader /> : "Create Account"}
             </button>
           </div>
         </form>
@@ -440,7 +441,7 @@ export default function Home() {
               disabled={loading || pin.length !== 6 || confirmPin.length !== 6}
               className={primaryButtonClass}
             >
-              {loading ? "..." : "Set PIN"}
+              {loading ? <ButtonLoader /> : "Set PIN"}
             </button>
           </div>
         </form>

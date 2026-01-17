@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import ButtonLoader from "./ButtonLoader";
 
 interface PinUpgradeModalProps {
   onUpgrade: (newPin: string) => Promise<boolean>;
@@ -104,7 +105,7 @@ export default function PinUpgradeModal({
             disabled={loading || newPin.length !== 6 || confirmPin.length !== 6}
             className="w-full py-3 bg-[var(--color-accent)] text-[var(--color-bg)] rounded-full text-sm uppercase font-medium hover:opacity-80 disabled:opacity-50 transition-opacity"
           >
-            {loading ? "..." : "Upgrade PIN"}
+            {loading ? <ButtonLoader /> : "Upgrade PIN"}
           </button>
 
         </form>

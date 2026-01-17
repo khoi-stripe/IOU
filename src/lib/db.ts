@@ -28,10 +28,8 @@ export interface IOU {
 }
 
 export interface Contact {
-  id: string | null; // User ID for pre-linking (null if not registered)
-  phone: string;
-  displayName: string | null;
-  isRegistered: boolean;
+  id: string; // User ID (required - only registered users are contacts)
+  displayName: string;
 }
 
 export interface Notification {
@@ -350,7 +348,6 @@ export async function getIOUsByUser(
     .range(offset, offset + limit - 1);
 
   // IOUs where this user is owed (by phone or userId)
-  // Exclude IOUs where user is also the creator (can't owe yourself)
   const { data: owingByUserId } = await supabase
     .from("iou_ious")
     .select(`
@@ -359,7 +356,6 @@ export async function getIOUsByUser(
       to_user:iou_users!iou_ious_to_user_id_fkey(*)
     `)
     .eq("to_user_id", userId)
-    .neq("from_user_id", userId)
     .order("created_at", { ascending: false });
 
   const { data: owingByPhone } = await supabase
@@ -371,7 +367,6 @@ export async function getIOUsByUser(
     `)
     .eq("to_phone", user.phone)
     .is("to_user_id", null)
-    .neq("from_user_id", userId)
     .order("created_at", { ascending: false });
 
   // Filter out archived IOUs from owed
@@ -553,120 +548,61 @@ export function enrichIOU(iou: IOU): IOU {
   return iou;
 }
 
-// Get contacts for a user (people they've interacted with via IOUs)
+// Get contacts for a user (registered users they've interacted with via IOUs)
 export async function getContactsForUser(userId: string): Promise<Contact[]> {
   const supabase = getSupabase();
-  const user = await getUserById(userId);
-  if (!user) return [];
 
-  // Get IOUs where this user owes someone (to get to_phone/to_user)
+  // Get IOUs where this user owes someone (get to_user if claimed)
   const { data: owedIOUs } = await supabase
     .from("iou_ious")
     .select(`
-      to_phone,
-      to_user:iou_users!iou_ious_to_user_id_fkey(id, phone, display_name)
+      to_user:iou_users!iou_ious_to_user_id_fkey(id, display_name)
     `)
-    .eq("from_user_id", userId);
+    .eq("from_user_id", userId)
+    .not("to_user_id", "is", null);
 
-  // Get IOUs where this user is owed (to get from_user)
-  const { data: owingByUserId } = await supabase
+  // Get IOUs where this user is owed (get from_user - always registered)
+  const { data: owingIOUs } = await supabase
     .from("iou_ious")
     .select(`
-      from_user:iou_users!iou_ious_from_user_id_fkey(id, phone, display_name)
+      from_user:iou_users!iou_ious_from_user_id_fkey(id, display_name)
     `)
     .eq("to_user_id", userId);
 
-  const { data: owingByPhone } = await supabase
-    .from("iou_ious")
-    .select(`
-      from_user:iou_users!iou_ious_from_user_id_fkey(id, phone, display_name)
-    `)
-    .eq("to_phone", user.phone);
-
   // Helper to extract user from Supabase join (could be object or array)
-  type JoinedUser = { id: string; phone: string; display_name: string } | { id: string; phone: string; display_name: string }[] | null;
-  function extractUser(joined: JoinedUser): { id: string; phone: string; display_name: string } | null {
+  type JoinedUser = { id: string; display_name: string } | { id: string; display_name: string }[] | null;
+  function extractUser(joined: JoinedUser): { id: string; display_name: string } | null {
     if (!joined) return null;
     if (Array.isArray(joined)) return joined[0] || null;
     return joined;
   }
 
-  // Build contacts map (keyed by normalized phone)
+  // Build contacts map keyed by user ID
   const contactsMap = new Map<string, Contact>();
-  const userPhoneNormalized = normalizePhone(user.phone);
 
-  // From IOUs where user owes someone
+  // From IOUs where user owes someone (claimed IOUs only)
   for (const iou of owedIOUs || []) {
-    const rawPhone = iou.to_phone;
     const toUser = extractUser(iou.to_user as JoinedUser);
-    const phone = normalizePhone(rawPhone) || normalizePhone(toUser?.phone);
-    
-    // Skip if no phone or self
-    if (!phone || phone === userPhoneNormalized) continue;
+    if (!toUser || toUser.id === userId) continue;
 
-    if (!contactsMap.has(phone)) {
-      contactsMap.set(phone, {
-        id: toUser?.id || null,
-        phone,
-        displayName: toUser?.display_name || null,
-        isRegistered: !!toUser,
-      });
-    } else if (toUser && !contactsMap.get(phone)!.displayName) {
-      // Update with name if we now have it
-      contactsMap.set(phone, {
+    if (!contactsMap.has(toUser.id)) {
+      contactsMap.set(toUser.id, {
         id: toUser.id,
-        phone,
         displayName: toUser.display_name,
-        isRegistered: true,
       });
     }
   }
 
   // From IOUs where user is owed
-  const owingIOUs = [...(owingByUserId || []), ...(owingByPhone || [])];
-  for (const iou of owingIOUs) {
+  for (const iou of owingIOUs || []) {
     const fromUser = extractUser(iou.from_user as JoinedUser);
-    if (!fromUser) continue;
-    
-    const phone = normalizePhone(fromUser.phone);
-    
-    // Skip self or invalid
-    if (!phone || phone === userPhoneNormalized) continue;
+    if (!fromUser || fromUser.id === userId) continue;
 
-    if (!contactsMap.has(phone)) {
-      contactsMap.set(phone, {
+    if (!contactsMap.has(fromUser.id)) {
+      contactsMap.set(fromUser.id, {
         id: fromUser.id,
-        phone,
         displayName: fromUser.display_name,
-        isRegistered: true,
       });
-    }
-  }
-
-  // Enrich contacts that show as not registered - they may have registered since
-  const unregisteredPhones = Array.from(contactsMap.values())
-    .filter(c => !c.isRegistered)
-    .map(c => c.phone);
-  
-  if (unregisteredPhones.length > 0) {
-    // Look up users by phone number
-    const { data: registeredUsers } = await supabase
-      .from("iou_users")
-      .select("id, phone, display_name")
-      .in("phone", unregisteredPhones);
-    
-    if (registeredUsers && registeredUsers.length > 0) {
-      for (const regUser of registeredUsers) {
-        const normalizedPhone = normalizePhone(regUser.phone);
-        if (normalizedPhone && contactsMap.has(normalizedPhone)) {
-          contactsMap.set(normalizedPhone, {
-            id: regUser.id,
-            phone: normalizedPhone,
-            displayName: regUser.display_name,
-            isRegistered: true,
-          });
-        }
-      }
     }
   }
 

@@ -6,10 +6,8 @@ import Logo from "@/components/Logo";
 import ImageWithLoader from "@/components/ImageWithLoader";
 
 interface Contact {
-  id: string | null;
-  phone: string;
-  displayName: string | null;
-  isRegistered: boolean;
+  id: string;
+  displayName: string;
 }
 
 export default function NewIOU() {
@@ -47,34 +45,15 @@ export default function NewIOU() {
   const filteredContacts = contacts.filter((contact) => {
     const search = searchValue.toLowerCase().trim();
     if (!search) return true; // Show all if empty
-    const nameMatch = contact.displayName?.toLowerCase().includes(search);
-    return nameMatch;
+    return contact.displayName.toLowerCase().includes(search);
   });
 
-  // Check for duplicate names (for disambiguation)
-  const nameCounts = contacts.reduce((acc, c) => {
-    if (c.displayName) {
-      acc[c.displayName] = (acc[c.displayName] || 0) + 1;
-    }
-    return acc;
-  }, {} as Record<string, number>);
-
-  function formatPhone(phone: string): string {
-    return `•••${phone.slice(-4)}`;
-  }
-
   function getDisplayLabel(contact: Contact): string {
-    if (!contact.displayName) {
-      return contact.phone;
-    }
-    if (nameCounts[contact.displayName] > 1) {
-      return `${contact.displayName} (${formatPhone(contact.phone)})`;
-    }
     return contact.displayName;
   }
 
   function handleSelectContact(contact: Contact) {
-    setSearchValue(contact.displayName || contact.phone);
+    setSearchValue(contact.displayName);
     setSelectedContact(contact);
     setShowDropdown(false);
   }
@@ -244,17 +223,12 @@ export default function NewIOU() {
                 <div className="absolute z-10 w-full mt-2 bg-[var(--color-accent)] text-[var(--color-bg)] rounded-lg max-h-48 overflow-y-auto">
                   {filteredContacts.map((contact) => (
                     <button
-                      key={contact.id || contact.phone}
+                      key={contact.id}
                       type="button"
                       onClick={() => handleSelectContact(contact)}
-                      className="w-full px-4 py-3 text-left text-sm hover:opacity-70 active:opacity-50 active:scale-[0.98] transition-all flex items-center justify-between first:rounded-t-lg last:rounded-b-lg"
+                      className="w-full px-4 py-3 text-left text-sm hover:opacity-70 active:opacity-50 active:scale-[0.98] transition-all first:rounded-t-lg last:rounded-b-lg"
                     >
-                      <span>{getDisplayLabel(contact)}</span>
-                      {!contact.isRegistered && (
-                        <span className="text-xs opacity-60">
-                          not registered
-                        </span>
-                      )}
+                      {getDisplayLabel(contact)}
                     </button>
                   ))}
                 </div>

@@ -205,9 +205,10 @@ export default function NewIOU() {
   return (
     <div className="h-dvh flex flex-col px-2">
       {/* Header */}
-      <header className="pt-8 pb-4 shrink-0 flex items-center justify-between px-2">
-        <div className="w-10" /> {/* Spacer for balance */}
-        <h1 className="text-lg font-medium">New <Logo /></h1>
+      <header className="flex items-center justify-between px-4 pt-4 shrink-0">
+        <div className="text-lg -mt-[9px]">
+          New <Logo />
+        </div>
         <button
           type="button"
           onClick={() => router.push("/dashboard")}
@@ -248,7 +249,7 @@ export default function NewIOU() {
                 <div className="absolute z-10 w-full mt-2 bg-[var(--color-accent)] text-[var(--color-bg)] rounded-lg max-h-48 overflow-y-auto">
                   {filteredContacts.map((contact) => (
                     <button
-                      key={contact.phone}
+                      key={contact.id || contact.phone}
                       type="button"
                       onClick={() => handleSelectContact(contact)}
                       className="w-full px-4 py-3 text-left text-sm hover:opacity-70 active:opacity-50 active:scale-[0.98] transition-all flex items-center justify-between first:rounded-t-lg last:rounded-b-lg"

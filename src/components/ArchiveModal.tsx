@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import Logo from "./Logo";
 import ImageWithLoader from "./ImageWithLoader";
+import HoldToConfirmButton from "./HoldToConfirmButton";
 
 interface User {
   id: string;
@@ -177,12 +178,14 @@ export default function ArchiveModal({ userId, onClose, onUnarchive }: ArchiveMo
                     )}
 
                     {/* Unarchive button */}
-                    <button
-                      onClick={() => handleUnarchiveClick(iou.id)}
-                      className="mt-3 w-full py-2 text-sm border border-[var(--color-border)] rounded-full hover:border-[var(--color-accent)] transition-colors"
-                    >
-                      Unarchive
-                    </button>
+                    <div className="mt-3">
+                      <HoldToConfirmButton 
+                        onConfirm={() => handleUnarchiveClick(iou.id)} 
+                        label="Hold to Unarchive" 
+                        confirmedLabel="Unarchived ✓" 
+                        duration={1200} 
+                      />
+                    </div>
                   </div>
                 );
               })}

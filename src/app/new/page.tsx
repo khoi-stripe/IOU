@@ -28,12 +28,33 @@ export default function NewIOU() {
 
   // Fetch contacts on mount
   useEffect(() => {
+    const cacheKey = "iou:contacts";
+
     async function fetchContacts() {
       try {
+        // Load cached contacts immediately (fast UI), then refresh in background
+        try {
+          const cached = sessionStorage.getItem(cacheKey);
+          if (cached) {
+            const parsed = JSON.parse(cached) as { ts: number; contacts: Contact[] };
+            if (parsed?.ts && Array.isArray(parsed.contacts) && Date.now() - parsed.ts < 10 * 60 * 1000) {
+              setContacts(parsed.contacts);
+            }
+          }
+        } catch {
+          // ignore cache parse errors
+        }
+
         const res = await fetch("/api/contacts");
         if (res.ok) {
           const data = await res.json();
-          setContacts(data.contacts || []);
+          const next = (data.contacts || []) as Contact[];
+          setContacts(next);
+          try {
+            sessionStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), contacts: next }));
+          } catch {
+            // ignore storage errors
+          }
         }
       } catch {
         // Silently fail - contacts are optional

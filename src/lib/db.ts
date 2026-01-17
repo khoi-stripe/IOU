@@ -397,6 +397,97 @@ export async function getIOUsByUser(
   };
 }
 
+export async function getOwedIOUsByUser(
+  userId: string,
+  options?: { limit?: number; offset?: number }
+): Promise<{ ious: IOU[]; hasMore: boolean }> {
+  const supabase = getSupabase();
+  const limit = options?.limit ?? 1000;
+  const offset = options?.offset ?? 0;
+
+  // Get archived IOU IDs for this user to filter them out
+  const archivedIds = await getArchivedIOUIds(userId);
+
+  const { data: owed, count: owedCount } = await supabase
+    .from("iou_ious")
+    .select(
+      `
+      *,
+      from_user:iou_users!iou_ious_from_user_id_fkey(*),
+      to_user:iou_users!iou_ious_to_user_id_fkey(*)
+    `,
+      { count: "exact" }
+    )
+    .eq("from_user_id", userId)
+    .order("created_at", { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  const owedFiltered = (owed || []).filter((iou) => !archivedIds.has(iou.id));
+  const owedWithUsers = await enrichIOUsWithMissingUsers(owedFiltered, supabase);
+
+  return {
+    ious: owedWithUsers as IOU[],
+    hasMore: (owedCount ?? 0) > offset + limit,
+  };
+}
+
+export async function getOwingIOUsByUser(
+  userId: string,
+  options?: { limit?: number; offset?: number }
+): Promise<{ ious: IOU[]; hasMore: boolean }> {
+  const supabase = getSupabase();
+  const user = await getUserById(userId);
+  if (!user) return { ious: [], hasMore: false };
+
+  const limit = options?.limit ?? 1000;
+  const offset = options?.offset ?? 0;
+
+  // Get archived IOU IDs for this user to filter them out
+  const archivedIds = await getArchivedIOUIds(userId);
+
+  const { data: owingByUserId } = await supabase
+    .from("iou_ious")
+    .select(`
+      *,
+      from_user:iou_users!iou_ious_from_user_id_fkey(*),
+      to_user:iou_users!iou_ious_to_user_id_fkey(*)
+    `)
+    .eq("to_user_id", userId)
+    .neq("from_user_id", userId)
+    .order("created_at", { ascending: false });
+
+  // Legacy support: unclaimed IOUs still addressed to phone
+  const { data: owingByPhone } = await supabase
+    .from("iou_ious")
+    .select(`
+      *,
+      from_user:iou_users!iou_ious_from_user_id_fkey(*),
+      to_user:iou_users!iou_ious_to_user_id_fkey(*)
+    `)
+    .eq("to_phone", user.phone)
+    .is("to_user_id", null)
+    .neq("from_user_id", userId)
+    .order("created_at", { ascending: false });
+
+  const owingMap = new Map<string, IOU>();
+  [...(owingByUserId || []), ...(owingByPhone || [])].forEach((iou) => {
+    if (!archivedIds.has(iou.id)) {
+      owingMap.set(iou.id, iou as IOU);
+    }
+  });
+
+  const allOwing = Array.from(owingMap.values()).sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
+  const paginatedOwing = allOwing.slice(offset, offset + limit);
+  const owingWithUsers = await enrichIOUsWithMissingUsers(paginatedOwing, supabase);
+
+  return {
+    ious: owingWithUsers,
+    hasMore: allOwing.length > offset + limit,
+  };
+}
+
 export async function getIOUById(id: string): Promise<IOU | null> {
   const supabase = getSupabase();
   const { data } = await supabase

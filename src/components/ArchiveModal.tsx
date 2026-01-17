@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import Logo from "./Logo";
 import ImageWithLoader from "./ImageWithLoader";
 import HoldToConfirmButton from "./HoldToConfirmButton";
@@ -50,12 +50,34 @@ export default function ArchiveModal({ userId, onClose, onUnarchive }: ArchiveMo
 
   // Fetch archived IOUs
   useEffect(() => {
+    const cacheKey = `iou:archive:${userId}`;
+
     async function fetchArchived() {
       try {
+        // Load cached archive immediately (fast UI), then refresh in background
+        try {
+          const cached = sessionStorage.getItem(cacheKey);
+          if (cached) {
+            const parsed = JSON.parse(cached) as { ts: number; ious: IOU[] };
+            if (parsed?.ts && Array.isArray(parsed.ious) && Date.now() - parsed.ts < 5 * 60 * 1000) {
+              setIous(parsed.ious);
+              setLoading(false);
+            }
+          }
+        } catch {
+          // ignore cache parse errors
+        }
+
         const res = await fetch("/api/ious/archived");
         if (res.ok) {
           const data = await res.json();
-          setIous(data.ious || []);
+          const next = (data.ious || []) as IOU[];
+          setIous(next);
+          try {
+            sessionStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), ious: next }));
+          } catch {
+            // ignore storage errors
+          }
         }
       } catch (err) {
         console.error("Failed to fetch archived IOUs:", err);
@@ -64,7 +86,7 @@ export default function ArchiveModal({ userId, onClose, onUnarchive }: ArchiveMo
       }
     }
     fetchArchived();
-  }, []);
+  }, [userId]);
 
   // Prevent body scroll when modal is open
   useEffect(() => {
@@ -97,10 +119,23 @@ export default function ArchiveModal({ userId, onClose, onUnarchive }: ArchiveMo
 
   async function handleUnarchiveClick(iouId: string) {
     // Remove from local state
-    setIous(prev => prev.filter(iou => iou.id !== iouId));
+    setIous((prev) => {
+      const next = prev.filter((iou) => iou.id !== iouId);
+      try {
+        sessionStorage.setItem(`iou:archive:${userId}`, JSON.stringify({ ts: Date.now(), ious: next }));
+      } catch {
+        // ignore storage errors
+      }
+      return next;
+    });
     // Call parent handler
     onUnarchive(iouId);
   }
+
+  const filteredIOUs = useMemo(() => {
+    if (filter === "all") return ious;
+    return ious.filter((i) => i.status === filter);
+  }, [ious, filter]);
 
   return (
     <div className="fixed inset-0 z-50 bg-[var(--color-bg)] flex justify-center">
@@ -154,33 +189,19 @@ export default function ArchiveModal({ userId, onClose, onUnarchive }: ArchiveMo
 
         {/* Content */}
         <div className={`flex-1 overflow-y-auto px-4 py-4 transition-opacity duration-300 ${isClosing ? "opacity-0" : ""}`}>
-          {(() => {
-            const filtered = ious.filter((i) => {
-              if (filter === "all") return true;
-              return i.status === filter;
-            });
-            
-            if (loading) {
-              return (
-                <div className="flex items-center justify-center h-32">
-                  <span className="text-[var(--color-text-muted)]"><ButtonLoader /></span>
-                </div>
-              );
-            }
-            
-            if (filtered.length === 0) {
-              return (
-                <div className="flex items-center justify-center h-32">
-                  <p className="text-[var(--color-text-muted)]">
-                    {ious.length === 0 ? "No archived IOUs" : "No matching IOUs"}
-                  </p>
-                </div>
-              );
-            }
-            
-            return (
-              <div className="space-y-3">
-                {filtered.map((iou) => {
+          {loading ? (
+            <div className="flex items-center justify-center h-32">
+              <span className="text-[var(--color-text-muted)]"><ButtonLoader /></span>
+            </div>
+          ) : filteredIOUs.length === 0 ? (
+            <div className="flex items-center justify-center h-32">
+              <p className="text-[var(--color-text-muted)]">
+                {ious.length === 0 ? "No archived IOUs" : "No matching IOUs"}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {filteredIOUs.map((iou) => {
                 const isOwe = iou.from_user_id === userId;
                 const personName = isOwe
                   ? iou.to_user?.display_name || iou.to_name || (iou.to_phone ? formatPhone(iou.to_phone) : null)
@@ -236,19 +257,18 @@ export default function ArchiveModal({ userId, onClose, onUnarchive }: ArchiveMo
 
                     {/* Unarchive button */}
                     <div className="mt-3">
-                      <HoldToConfirmButton 
-                        onConfirm={() => handleUnarchiveClick(iou.id)} 
-                        label="Hold to Unarchive" 
-                        confirmedLabel="Unarchived ✓" 
-                        duration={1200} 
+                      <HoldToConfirmButton
+                        onConfirm={() => handleUnarchiveClick(iou.id)}
+                        label="Hold to Unarchive"
+                        confirmedLabel="Unarchived ✓"
+                        duration={1200}
                       />
                     </div>
                   </div>
                 );
               })}
-              </div>
-            );
-          })()}
+            </div>
+          )}
         </div>
       </div>
     </div>

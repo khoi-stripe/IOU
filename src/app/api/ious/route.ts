@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createIOU, getIOUsByUser, getUserById, enrichIOU } from "@/lib/db";
+import {
+  createIOU,
+  getIOUsByUser,
+  getOwedIOUsByUser,
+  getOwingIOUsByUser,
+  getUserById,
+  enrichIOU,
+} from "@/lib/db";
 import { getAuthenticatedUserId } from "@/lib/session";
 import { normalizePhone } from "@/lib/utils";
 
@@ -20,6 +27,30 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const limit = searchParams.get("limit") ? parseInt(searchParams.get("limit")!) : undefined;
     const offset = searchParams.get("offset") ? parseInt(searchParams.get("offset")!) : undefined;
+    const tab = searchParams.get("tab");
+
+    // If tab is specified, only return that side (smaller payload + avoids pagination cross-talk)
+    if (tab === "owe") {
+      const { ious, hasMore } = await getOwedIOUsByUser(userId, { limit, offset });
+      return NextResponse.json({
+        user,
+        owed: ious.map(enrichIOU),
+        owing: [],
+        hasMoreOwed: hasMore,
+        hasMoreOwing: false,
+      });
+    }
+
+    if (tab === "owed") {
+      const { ious, hasMore } = await getOwingIOUsByUser(userId, { limit, offset });
+      return NextResponse.json({
+        user,
+        owed: [],
+        owing: ious.map(enrichIOU),
+        hasMoreOwed: false,
+        hasMoreOwing: hasMore,
+      });
+    }
 
     const { owed, owing, hasMoreOwed, hasMoreOwing } = await getIOUsByUser(userId, { limit, offset });
 

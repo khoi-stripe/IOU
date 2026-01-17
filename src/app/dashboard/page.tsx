@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState, useRef, useCallback, memo } from "react";
+import { Suspense, useEffect, useState, useRef, useCallback, memo, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Loader from "@/components/Loader";
@@ -98,10 +98,11 @@ function DashboardContent() {
     fetchNotifications();
   }, []);
 
-  const fetchData = useCallback(async (append = false) => {
+  const fetchData = useCallback(async (append = false, tabOverride?: Tab) => {
     try {
-      const offset = append ? (activeTab === "owe" ? owed.length : owing.length) : 0;
-      const res = await fetch(`/api/ious?limit=${PAGE_SIZE}&offset=${offset}`);
+      const tab = tabOverride ?? activeTab;
+      const offset = append ? (tab === "owe" ? owed.length : owing.length) : 0;
+      const res = await fetch(`/api/ious?tab=${tab}&limit=${PAGE_SIZE}&offset=${offset}`);
       if (!res.ok) {
         if (res.status === 401) {
           router.push("/");
@@ -113,25 +114,30 @@ function DashboardContent() {
       setUser(data.user);
       
       if (append) {
-        // Deduplicate when appending to prevent duplicates from race conditions
-        setOwed(prev => {
-          const ids = new Set(prev.map(i => i.id));
-          return [...prev, ...data.owed.filter((i: IOU) => !ids.has(i.id))];
-        });
-        setOwing(prev => {
-          const ids = new Set(prev.map(i => i.id));
-          return [...prev, ...data.owing.filter((i: IOU) => !ids.has(i.id))];
-        });
+        // Append only the active tab results (avoids cross-tab pagination duplicates)
+        if (tab === "owe") {
+          setOwed((prev) => {
+            const ids = new Set(prev.map((i) => i.id));
+            return [...prev, ...data.owed.filter((i: IOU) => !ids.has(i.id))];
+          });
+        } else {
+          setOwing((prev) => {
+            const ids = new Set(prev.map((i) => i.id));
+            return [...prev, ...data.owing.filter((i: IOU) => !ids.has(i.id))];
+          });
+        }
       } else {
-        setOwed(data.owed);
-        setOwing(data.owing);
+        // Replace only the tab we fetched
+        if (tab === "owe") setOwed(data.owed);
+        if (tab === "owed") setOwing(data.owing);
       }
       
-      setHasMoreOwed(data.hasMoreOwed);
-      setHasMoreOwing(data.hasMoreOwing);
+      if (tab === "owe") setHasMoreOwed(data.hasMoreOwed);
+      if (tab === "owed") setHasMoreOwing(data.hasMoreOwing);
     } catch (err) {
       console.error(err);
     } finally {
+      // Only the initial mount uses the full-screen loader
       setLoading(false);
       setLoadingMore(false);
     }
@@ -169,7 +175,7 @@ function DashboardContent() {
     if (loadingMore || !hasMore) return;
     
     setLoadingMore(true);
-    fetchData(true);
+    fetchData(true, activeTab);
   }, [activeTab, hasMoreOwed, hasMoreOwing, loadingMore, fetchData]);
 
   // Scroll detection for infinite scroll (using window scroll)
@@ -302,24 +308,33 @@ function DashboardContent() {
   async function handleUnarchive(iouId: string) {
     try {
       await fetch(`/api/ious/${iouId}/archive`, { method: "DELETE" });
-      // Refresh data to show unarchived IOU
-      fetchData();
+      // Refresh both tabs so the unarchived IOU reappears in the correct place
+      await Promise.all([fetchData(false, "owe"), fetchData(false, "owed")]);
     } catch (err) {
       console.error(err);
       showToast("Failed to unarchive");
     }
   }
 
-  const items = activeTab === "owe" ? owed : owing;
-  // Deduplicate by ID (safeguard against pagination race conditions)
-  const uniqueItems = Array.from(new Map(items.map(i => [i.id, i])).values());
-  const filtered = uniqueItems.filter((i) => {
-    if (filter === "all") return true;
-    return i.status === filter;
-  });
+  const items = useMemo(() => (activeTab === "owe" ? owed : owing), [activeTab, owed, owing]);
 
-  const oweCount = owed.filter((i) => i.status === "pending").length;
-  const owedCount = owing.filter((i) => i.status === "pending").length;
+  // Deduplicate by ID (safeguard) - memoized to avoid rebuilding maps every render
+  const uniqueItems = useMemo(
+    () => Array.from(new Map(items.map((i) => [i.id, i])).values()),
+    [items]
+  );
+
+  const filtered = useMemo(
+    () =>
+      uniqueItems.filter((i) => {
+        if (filter === "all") return true;
+        return i.status === filter;
+      }),
+    [uniqueItems, filter]
+  );
+
+  const oweCount = useMemo(() => owed.filter((i) => i.status === "pending").length, [owed]);
+  const owedCount = useMemo(() => owing.filter((i) => i.status === "pending").length, [owing]);
 
   if (loading) {
     return <Loader className="h-dvh" />;
@@ -395,6 +410,11 @@ function DashboardContent() {
             onClick={() => {
               setActiveTab("owe");
               window.scrollTo({ top: 0, behavior: "smooth" });
+              // Lazy-load tab data if not yet loaded
+              if (owed.length === 0 && !loadingMore) {
+                setLoadingMore(true);
+                fetchData(false, "owe");
+              }
             }}
             className={`flex-1 py-4 px-4 text-left transition-colors rounded-t ${
               activeTab === "owe"
@@ -412,6 +432,11 @@ function DashboardContent() {
             onClick={() => {
               setActiveTab("owed");
               window.scrollTo({ top: 0, behavior: "smooth" });
+              // Lazy-load tab data if not yet loaded
+              if (owing.length === 0 && !loadingMore) {
+                setLoadingMore(true);
+                fetchData(false, "owed");
+              }
             }}
             className={`flex-1 py-4 px-4 text-left transition-colors rounded-t ${
               activeTab === "owed"
@@ -473,7 +498,7 @@ function DashboardContent() {
             <div className="space-y-3 p-4">
             {filtered.length === 0 ? (
               <p className="text-center py-12 text-[var(--color-text-muted)] text-sm">
-                No IOUs yet
+                {loadingMore ? <ButtonLoader /> : "No IOUs yet"}
               </p>
             ) : (
               <>

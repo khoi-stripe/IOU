@@ -1,6 +1,6 @@
 export default function Logo({ className = "" }: { className?: string }) {
   return (
-    <span className={`inline-flex items-center gap-[0.15em] ${className}`}>
+    <span className={`inline-flex items-center align-middle gap-[0.3em] ${className}`}>
       {/* Eye */}
       <svg className="h-[1em] w-auto animate-logo-1" viewBox="0 0 371 232.58" fill="currentColor">
         <circle cx="185.5" cy="116.29" r="38.22" transform="translate(7.07 243.17) rotate(-67.5)"/>

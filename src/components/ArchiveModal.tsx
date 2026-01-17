@@ -142,8 +142,8 @@ export default function ArchiveModal({ userId, onClose, onUnarchive }: ArchiveMo
       <div className="flex flex-col w-full max-w-md px-2 h-full">
         {/* Header */}
         <header className={`flex items-center justify-between px-4 pt-4 shrink-0 transition-opacity duration-300 ${isClosing ? "opacity-0" : ""}`}>
-          <div className="text-lg -mt-[7px]">
-            <Logo /> <span className="animate-logo-text">archive</span>
+          <div className="text-lg -mt-[5px]">
+            <Logo /> <span className="animate-logo-text relative top-[2px]">archive</span>
           </div>
           <button
             onClick={handleClose}

@@ -144,7 +144,11 @@ function DashboardContent() {
   }, [activeTab, owed.length, owing.length, router]);
 
   useEffect(() => {
-    fetchData();
+    // Fetch active tab first, then prefetch inactive tab
+    fetchData().then(() => {
+      const inactiveTab = activeTab === "owe" ? "owed" : "owe";
+      fetchData(false, inactiveTab);
+    });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

@@ -108,7 +108,7 @@ export default function ArchiveModal({ userId, onClose, onUnarchive }: ArchiveMo
         {/* Header */}
         <header className={`flex items-center justify-between px-4 pt-4 shrink-0 transition-opacity duration-300 ${isClosing ? "opacity-0" : ""}`}>
           <div className="text-lg -mt-[7px]">
-            <Logo /> archive
+            <Logo /> <span className="animate-logo-text">archive</span>
           </div>
           <button
             onClick={handleClose}

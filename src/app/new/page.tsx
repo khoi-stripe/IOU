@@ -274,12 +274,13 @@ export default function NewIOU() {
                 onBlur={handleInputBlur}
                 placeholder="Name"
                 autoComplete="off"
+                data-1p-ignore
                 className={inputClass}
               />
 
               {/* Dropdown - show recent contacts when empty, filtered when typing */}
               {showDropdown && searchValue.trim() === "" && recentContacts.length > 0 && (
-                <div className="absolute z-10 w-full mt-2 bg-[var(--color-accent)] text-[var(--color-bg)] rounded-lg max-h-44 overflow-y-auto">
+                <div className="absolute z-10 w-full mt-2 bg-[var(--color-accent)] text-[var(--color-bg)] rounded-lg max-h-44 overflow-y-auto scrollbar-thin">
                   <div className="px-4 pt-3 pb-1 text-[10px] uppercase tracking-wider opacity-60">
                     Recent
                   </div>
@@ -296,7 +297,7 @@ export default function NewIOU() {
                 </div>
               )}
               {showDropdown && searchValue.trim() !== "" && filteredContacts.length > 0 && (
-                <div className="absolute z-10 w-full mt-2 bg-[var(--color-accent)] text-[var(--color-bg)] rounded-lg max-h-44 overflow-y-auto">
+                <div className="absolute z-10 w-full mt-2 bg-[var(--color-accent)] text-[var(--color-bg)] rounded-lg max-h-44 overflow-y-auto scrollbar-thin">
                   {filteredContacts.map((contact) => (
                     <button
                       key={contact.id}
@@ -324,6 +325,7 @@ export default function NewIOU() {
               placeholder="Coffee, lunch, a favor..."
               rows={3}
               required
+              data-1p-ignore
               className={inputClass + " resize-none"}
             />
           </div>

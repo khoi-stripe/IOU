@@ -112,8 +112,15 @@ function DashboardContent() {
       setUser(data.user);
       
       if (append) {
-        setOwed(prev => [...prev, ...data.owed]);
-        setOwing(prev => [...prev, ...data.owing]);
+        // Deduplicate when appending to prevent duplicates from race conditions
+        setOwed(prev => {
+          const ids = new Set(prev.map(i => i.id));
+          return [...prev, ...data.owed.filter((i: IOU) => !ids.has(i.id))];
+        });
+        setOwing(prev => {
+          const ids = new Set(prev.map(i => i.id));
+          return [...prev, ...data.owing.filter((i: IOU) => !ids.has(i.id))];
+        });
       } else {
         setOwed(data.owed);
         setOwing(data.owing);
@@ -303,7 +310,9 @@ function DashboardContent() {
   }
 
   const items = activeTab === "owe" ? owed : owing;
-  const filtered = items.filter((i) => {
+  // Deduplicate by ID (safeguard against pagination race conditions)
+  const uniqueItems = Array.from(new Map(items.map(i => [i.id, i])).values());
+  const filtered = uniqueItems.filter((i) => {
     if (filter === "all") return true;
     return i.status === filter;
   });

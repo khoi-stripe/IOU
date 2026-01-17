@@ -166,16 +166,11 @@ export default function NewIOU() {
       // If sharing, open native share dialog before navigating
       if (shouldShare && data.iou?.share_token) {
         const url = `${window.location.origin}/share/${data.iou.share_token}`;
-        const recipientName = searchValue || "someone";
         
         try {
           if (navigator.share) {
-            // Native share (works on HTTPS)
-            await navigator.share({
-              url,
-              title: "IOU",
-              text: `I owe ${recipientName}: ${description}`,
-            });
+            // Native share (works on HTTPS) - just the URL
+            await navigator.share({ url });
           } else {
             // Fallback: show prompt with URL for manual copy (works on HTTP)
             prompt("Copy this link to share:", url);

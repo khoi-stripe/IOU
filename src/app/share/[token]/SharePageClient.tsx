@@ -147,6 +147,7 @@ export default function SharePageClient({ token }: Props) {
   }
 
   const fromName = iou.from_user?.display_name || "Someone";
+  const recipientName = iou.to_user?.display_name || iou.to_name;
 
   return (
     <div className="min-h-dvh overflow-y-auto py-8 space-y-6">
@@ -156,6 +157,12 @@ export default function SharePageClient({ token }: Props) {
           A record of a favor
         </p>
       </header>
+
+      {recipientName && (
+        <p className="text-lg text-center !mb-4">
+          Hi, <span className="font-bold">{recipientName}</span>.
+        </p>
+      )}
 
       <div className="p-6 bg-[var(--color-bg-secondary)] rounded-[4px] space-y-4">
         <div className="text-center">

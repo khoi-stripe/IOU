@@ -11,12 +11,41 @@ interface Contact {
   displayName: string;
 }
 
+const RECENT_CONTACTS_KEY = "iou:recent-contacts";
+const MAX_RECENT_CONTACTS = 5;
+
+function getRecentContacts(): Contact[] {
+  try {
+    const stored = localStorage.getItem(RECENT_CONTACTS_KEY);
+    if (stored) {
+      return JSON.parse(stored) as Contact[];
+    }
+  } catch {
+    // ignore parse errors
+  }
+  return [];
+}
+
+function addRecentContact(contact: Contact): void {
+  try {
+    const recent = getRecentContacts();
+    // Remove if already exists (will re-add at front)
+    const filtered = recent.filter((c) => c.id !== contact.id);
+    // Prepend and cap at max
+    const updated = [contact, ...filtered].slice(0, MAX_RECENT_CONTACTS);
+    localStorage.setItem(RECENT_CONTACTS_KEY, JSON.stringify(updated));
+  } catch {
+    // ignore storage errors
+  }
+}
+
 export default function NewIOU() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [recentContacts, setRecentContacts] = useState<Contact[]>([]);
   const [searchValue, setSearchValue] = useState("");
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null); // Known user selected
   const [showDropdown, setShowDropdown] = useState(false);
@@ -25,6 +54,11 @@ export default function NewIOU() {
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Load recent contacts on mount
+  useEffect(() => {
+    setRecentContacts(getRecentContacts());
+  }, []);
 
   // Fetch contacts on mount
   useEffect(() => {
@@ -78,6 +112,9 @@ export default function NewIOU() {
     setSearchValue(contact.displayName);
     setSelectedContact(contact);
     setShowDropdown(false);
+    // Add to recent contacts
+    addRecentContact(contact);
+    setRecentContacts(getRecentContacts());
   }
 
   function handleInputChange(value: string) {
@@ -240,9 +277,26 @@ export default function NewIOU() {
                 className={inputClass}
               />
 
-              {/* Dropdown */}
-              {showDropdown && filteredContacts.length > 0 && (
-                <div className="absolute z-10 w-full mt-2 bg-[var(--color-accent)] text-[var(--color-bg)] rounded-lg max-h-48 overflow-y-auto">
+              {/* Dropdown - show recent contacts when empty, filtered when typing */}
+              {showDropdown && searchValue.trim() === "" && recentContacts.length > 0 && (
+                <div className="absolute z-10 w-full mt-2 bg-[var(--color-accent)] text-[var(--color-bg)] rounded-lg max-h-44 overflow-y-auto">
+                  <div className="px-4 pt-3 pb-1 text-[10px] uppercase tracking-wider opacity-60">
+                    Recent
+                  </div>
+                  {recentContacts.map((contact) => (
+                    <button
+                      key={contact.id}
+                      type="button"
+                      onClick={() => handleSelectContact(contact)}
+                      className="w-full px-4 py-3 text-left text-sm hover:opacity-70 active:opacity-50 active:scale-[0.98] transition-all last:rounded-b-lg"
+                    >
+                      {getDisplayLabel(contact)}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {showDropdown && searchValue.trim() !== "" && filteredContacts.length > 0 && (
+                <div className="absolute z-10 w-full mt-2 bg-[var(--color-accent)] text-[var(--color-bg)] rounded-lg max-h-44 overflow-y-auto">
                   {filteredContacts.map((contact) => (
                     <button
                       key={contact.id}

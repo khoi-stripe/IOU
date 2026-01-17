@@ -14,6 +14,7 @@ export const metadata: Metadata = {
   description: "Favors between friends",
   icons: {
     icon: "/favicon.svg",
+    apple: "/apple-touch-icon.png",
   },
 };
 

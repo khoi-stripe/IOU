@@ -71,7 +71,10 @@ export default function HoldToConfirmButton({
   };
 
   const startHold = (e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault();
+    // Only preventDefault for mouse events - touch is handled by touch-none CSS
+    if (e.type === "mousedown") {
+      e.preventDefault();
+    }
     if (holdingRef.current) return;
     
     // Cancel any spring animation

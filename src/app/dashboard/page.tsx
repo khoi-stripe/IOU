@@ -364,7 +364,7 @@ function DashboardContent() {
             </button>
 
             {showUserMenu && (
-              <div className="absolute right-0 top-full mt-1 bg-[var(--color-bg)] border border-[var(--color-border)] rounded-[4px] shadow-lg z-30 overflow-hidden animate-menu-in origin-top-right">
+              <div className="absolute right-0 top-full mt-1 bg-[var(--color-bg)] border border-[var(--color-border)] rounded-[4px] z-30 overflow-hidden animate-menu-in origin-top-right">
                 <button
                   onClick={() => {
                     setShowUserMenu(false);
@@ -589,7 +589,7 @@ const IOUCard = memo(function IOUCard({
           </button>
 
           {menuOpen && (
-            <div className="absolute right-0 top-full mt-1 bg-[var(--color-bg)] border border-[var(--color-border)] rounded-[4px] shadow-lg z-20 overflow-hidden animate-menu-in origin-top-right">
+            <div className="absolute right-0 top-full mt-1 bg-[var(--color-bg)] border border-[var(--color-border)] rounded-[4px] z-20 overflow-hidden animate-menu-in origin-top-right">
               <button
                 onClick={() => {
                   setMenuOpen(false);

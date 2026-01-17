@@ -350,6 +350,7 @@ export async function getIOUsByUser(
     .range(offset, offset + limit - 1);
 
   // IOUs where this user is owed (by phone or userId)
+  // Exclude IOUs where user is also the creator (can't owe yourself)
   const { data: owingByUserId } = await supabase
     .from("iou_ious")
     .select(`
@@ -358,6 +359,7 @@ export async function getIOUsByUser(
       to_user:iou_users!iou_ious_to_user_id_fkey(*)
     `)
     .eq("to_user_id", userId)
+    .neq("from_user_id", userId)
     .order("created_at", { ascending: false });
 
   const { data: owingByPhone } = await supabase
@@ -369,6 +371,7 @@ export async function getIOUsByUser(
     `)
     .eq("to_phone", user.phone)
     .is("to_user_id", null)
+    .neq("from_user_id", userId)
     .order("created_at", { ascending: false });
 
   // Filter out archived IOUs from owed

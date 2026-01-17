@@ -18,3 +18,4 @@ export function normalizePhone(phone: string | null | undefined): string | null 
   return digits.length > 0 ? digits : null;
 }
 
+

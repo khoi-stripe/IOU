@@ -10,7 +10,7 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "👁️🅾️🐑",
+  title: "IOU",
   description: "Favors between friends",
   icons: {
     icon: "/favicon.svg",
